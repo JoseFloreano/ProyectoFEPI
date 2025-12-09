@@ -1,0 +1,130 @@
+.code-editor {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+}
+
+.editor-header {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editor-tab {
+  background: var(--bg-elevated);
+  padding: 0.5rem 1rem;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.editor-tab.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.tab-icon {
+  font-size: 1rem;
+}
+
+.editor-body {
+  display: flex;
+  background: var(--bg-primary);
+  min-height: 400px;
+  position: relative;
+}
+
+.line-numbers {
+  background: var(--bg-secondary);
+  padding: 1rem 0.5rem;
+  text-align: right;
+  user-select: none;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border-right: 1px solid var(--border);
+  min-width: 50px;
+}
+
+.line-number {
+  padding: 0 0.5rem;
+}
+
+.code-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  tab-size: 4;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+.code-textarea::selection {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.editor-footer {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.editor-info {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .editor-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  
+  .btn-compile {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .editor-body {
+    min-height: 300px;
+  }
+  
+  .editor-footer {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
