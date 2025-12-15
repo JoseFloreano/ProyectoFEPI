@@ -1,0 +1,57 @@
+Tema
+Características de los algoritmos
+Representación de algoritmos en pseudocódigo
+Abstracción y tipo de dato abstracto
+Orden de complejidad O() de un algoritmo
+Ordenamiento por inserción
+Ordenamiento por selección
+Ordenamiento de burbuja (Bubble Sort)
+Ordenamiento por mezcla (Merge Sort)
+Comparación de órdenes de complejidad
+Búsqueda secuencial
+Búsqueda binaria
+Búsqueda indexada
+Exploración exhaustiva
+Programación por vuelta atrás (Backtracking)
+Complejidad de exploración exhaustiva
+Pilas (Stacks)
+Especificación genérica de pilas
+Implementación estática de pilas
+Implementación dinámica de pilas
+Operaciones con pilas (push, pop)
+Aplicaciones de pilas
+Colas (Queues)
+Especificación genérica de colas
+Implementación estática de colas
+Implementación dinámica de colas
+Colas de prioridad
+Operaciones con colas (enqueue, dequeue)
+Aplicaciones de colas
+Listas enlazadas
+Especificación genérica de listas
+Listas simplemente enlazadas
+Listas doblemente enlazadas
+Listas circulares
+Arreglos versus listas
+Complejidad de operaciones en listas
+Tablas hash
+Función hash
+Resolución de colisiones
+Tablas hash cerradas
+Tablas hash abiertas
+Complejidad de operaciones en tablas hash
+Árboles binarios
+Transformación de árboles generales a binarios
+Recorridos en árboles (inorder, preorder, postorder)
+Árbol binario de búsqueda (BST)
+Árbol balanceado rojo-negro
+Montículo (Heap)
+Otros tipos de árboles
+Complejidad de operaciones en árboles
+Grafos
+Representación matricial de grafos
+Representación con listas de adyacencia
+Búsqueda en amplitud (BFS)
+Búsqueda en profundidad (DFS)
+Distancia más corta en grafos
+Complejidad de algoritmos sobre grafos

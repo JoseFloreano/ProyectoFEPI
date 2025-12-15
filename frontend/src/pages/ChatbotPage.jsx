@@ -1,23 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import '../styles/ChatbotPage.css';
+
+// Definición de materias disponibles
+const MATERIAS = [
+  {
+    id: 'fundamentos',
+    nombre: 'Fundamentos de Programación',
+    descripcion: 'Conceptos básicos de programación en C',
+    icon: '📚',
+    color: '#10b981',
+    nivel: 1,
+    temasClave: ['Variables', 'Bucles', 'Funciones', 'Arrays', 'Punteros básicos']
+  },
+  {
+    id: 'estructuras',
+    nombre: 'Algoritmos y Estructuras de Datos',
+    descripcion: 'Estructuras de datos y algoritmos fundamentales',
+    icon: '🔗',
+    color: '#f59e0b',
+    nivel: 2,
+    temasClave: ['Listas enlazadas', 'Pilas', 'Colas', 'Árboles', 'Grafos', 'Ordenamiento'],
+    incluye: ['Todos los temas de Fundamentos']
+  },
+  {
+    id: 'analisis',
+    nombre: 'Análisis y Diseño de Algoritmos',
+    descripcion: 'Análisis de complejidad y algoritmos avanzados',
+    icon: '📊',
+    color: '#ef4444',
+    nivel: 3,
+    temasClave: ['Complejidad', 'Divide y Conquista', 'Prog. Dinámica', 'Grafos avanzados'],
+    incluye: ['Todos los temas de Fundamentos y Estructuras']
+  }
+];
 
 function ChatbotPage() {
   const { addCustomProject } = useDatabase();
   
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: '¡Hola! 👋 Soy tu asistente para crear proyectos de C personalizados. \n\nPuedes pedirme que cree un proyecto sobre cualquier tema, por ejemplo:\n• "Quiero un proyecto sobre manejo de strings"\n• "Crea ejercicios sobre punteros"\n• "Proyecto de estructuras de datos básicas"\n\n¿Qué te gustaría aprender?'
-    }
-  ]);
-  
+  const [selectedMateria, setSelectedMateria] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Inicializar mensaje de bienvenida
+  useEffect(() => {
+    setMessages([
+      {
+        role: 'assistant',
+        content: '¡Hola! 👋 Soy tu asistente de IA para crear proyectos de C personalizados.\n\n📚 **Primero, selecciona una materia** de las opciones disponibles para comenzar.\n\nLas materias están organizadas de forma seriada:\n• Fundamentos → Estructuras → Análisis\n\n¿Qué materia te gustaría practicar hoy?'
+      }
+    ]);
+  }, []);
+
+  // Manejar selección de materia
+  const handleMateriaSelect = (materia) => {
+    setSelectedMateria(materia);
+    
+    const materiaInfo = MATERIAS.find(m => m.id === materia);
+    
+    const confirmMessage = {
+      role: 'assistant',
+      content: `Perfecto! Has seleccionado **${materiaInfo.nombre}** ${materiaInfo.icon}\n\n${materiaInfo.descripcion}\n\n${materiaInfo.incluye ? `✨ Esta materia incluye: ${materiaInfo.incluye.join(', ')}\n\n` : ''}Ahora dime: ¿qué proyecto te gustaría crear?\n\nEjemplos:\n• "Quiero practicar ${materiaInfo.temasClave[0]}"\n• "Crea ejercicios de ${materiaInfo.temasClave[1]}"\n• "Proyecto sobre ${materiaInfo.temasClave[2]}"`
+    };
+    
+    setMessages(prev => [...prev, confirmMessage]);
+  };
 
   // Manejar envío de mensaje
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
+
+    if (!selectedMateria) {
+      alert('⚠️ Por favor, selecciona una materia primero');
+      return;
+    }
 
     const userMessage = {
       role: 'user',
@@ -29,20 +86,7 @@ function ChatbotPage() {
     setIsLoading(true);
 
     try {
-      // AQUÍ SE IMPLEMENTARÍA LA LLAMADA A LA IA PARA GENERAR EL PROYECTO
-      // Por ahora, simulamos una respuesta
-      
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simular delay
-
-      const assistantMessage = {
-        role: 'assistant',
-        content: `He entendido tu petición: "${userInput}"\n\n🤖 La integración con IA está lista para implementarse. Cuando se conecte con Claude, OpenAI o Gemini, podré:\n\n1. Analizar tu solicitud\n2. Generar un proyecto completo con:\n   • Nombre y descripción\n   • 3-5 ejercicios progresivos\n   • Proyecto final integrador\n   • Código de inicio y hints\n3. Guardarlo automáticamente en tu lista de proyectos\n\n📝 Para implementar esto, sigue las instrucciones en el archivo ai-integration-example.js del backend.`
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // EJEMPLO DE CÓMO SE VERÍA LA INTEGRACIÓN REAL:
-      /*
+      // Llamar al backend para generar el proyecto
       const response = await fetch('http://localhost:3001/api/generate-project', {
         method: 'POST',
         headers: {
@@ -50,27 +94,36 @@ function ChatbotPage() {
         },
         body: JSON.stringify({
           userRequest: userInput,
+          materia: selectedMateria,
           conversationHistory: messages
         })
       });
 
-      const generatedProject = await response.json();
-      
-      // Agregar proyecto generado a la base de datos
-      addCustomProject(generatedProject);
-      
-      const assistantMessage = {
-        role: 'assistant',
-        content: `¡Proyecto creado! 🎉\n\n**${generatedProject.name}**\n${generatedProject.description}\n\nIncluye ${generatedProject.exercises.length} ejercicios y un proyecto final.\n\nYa está disponible en tu lista de proyectos. ¡Ve a la sección de Ejercicios para empezar!`
-      };
+      const data = await response.json();
 
-      setMessages(prev => [...prev, assistantMessage]);
-      */
+      if (data.success && data.project) {
+        // Agregar proyecto a la base de datos
+        addCustomProject(data.project);
+
+        const successMessage = {
+          role: 'assistant',
+          content: `¡Proyecto creado exitosamente! 🎉\n\n**${data.project.name}** ${data.project.icon}\n${data.project.description}\n\n📝 **Ejercicios incluidos:** ${data.project.exercises.length}\n🎯 **Dificultad:** ${data.project.difficulty}\n📚 **Temas:** ${data.project.temasUsados?.join(', ') || 'Varios'}\n\n✅ El proyecto ya está disponible en la sección de **Ejercicios**.\n\n¿Quieres crear otro proyecto?`
+        };
+
+        setMessages(prev => [...prev, successMessage]);
+      } else {
+        const errorMessage = {
+          role: 'assistant',
+          content: `❌ No pude generar el proyecto: ${data.error || 'Error desconocido'}\n\n${data.suggestion || 'Intenta reformular tu solicitud.'}`
+        };
+
+        setMessages(prev => [...prev, errorMessage]);
+      }
 
     } catch (error) {
       const errorMessage = {
         role: 'assistant',
-        content: `❌ Error: ${error.message}\n\nAsegúrate de que el servidor esté corriendo y la integración con IA esté configurada.`
+        content: `❌ Error al conectar con el servidor: ${error.message}\n\nAsegúrate de que:\n1. El servidor backend esté corriendo\n2. La API key de Gemini esté configurada\n3. Los archivos CSV de temarios existan`
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -86,18 +139,6 @@ function ChatbotPage() {
     }
   };
 
-  // Sugerencias rápidas
-  const quickSuggestions = [
-    'Proyecto sobre arrays en C',
-    'Ejercicios de punteros básicos',
-    'Crear un proyecto de strings',
-    'Algoritmos de ordenamiento'
-  ];
-
-  const handleSuggestionClick = (suggestion) => {
-    setUserInput(suggestion);
-  };
-
   return (
     <div className="chatbot-page">
       <div className="chatbot-container">
@@ -105,11 +146,85 @@ function ChatbotPage() {
           <div className="header-content">
             <span className="ai-icon">🤖</span>
             <div>
-              <h2>Asistente de Proyectos</h2>
-              <p>Crea proyectos personalizados con IA</p>
+              <h2>Generador de Proyectos con IA</h2>
+              <p>
+                {selectedMateria 
+                  ? `Materia: ${MATERIAS.find(m => m.id === selectedMateria)?.nombre}` 
+                  : 'Selecciona una materia para comenzar'}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* Selector de Materias */}
+        {!selectedMateria && (
+          <div className="materia-selector">
+            <h3>Selecciona tu Materia</h3>
+            <p className="selector-description">
+              Las materias son seriadas. Las más avanzadas incluyen temas de las anteriores.
+            </p>
+            
+            <div className="materias-grid">
+              {MATERIAS.map(materia => (
+                <div
+                  key={materia.id}
+                  className="materia-card"
+                  onClick={() => handleMateriaSelect(materia.id)}
+                  style={{ '--materia-color': materia.color }}
+                >
+                  <div className="materia-card-header">
+                    <span className="materia-icon">{materia.icon}</span>
+                    <span className="materia-nivel">Nivel {materia.nivel}</span>
+                  </div>
+                  
+                  <h4>{materia.nombre}</h4>
+                  <p className="materia-descripcion">{materia.descripcion}</p>
+                  
+                  <div className="temas-preview">
+                    <strong>Temas clave:</strong>
+                    <div className="temas-tags">
+                      {materia.temasClave.slice(0, 3).map((tema, idx) => (
+                        <span key={idx} className="tema-tag">{tema}</span>
+                      ))}
+                      {materia.temasClave.length > 3 && (
+                        <span className="tema-tag">+{materia.temasClave.length - 3} más</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {materia.incluye && (
+                    <div className="materia-incluye">
+                      ✨ {materia.incluye}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cambiar Materia */}
+        {selectedMateria && (
+          <div className="materia-selected">
+            <div className="selected-info">
+              <span className="selected-icon">
+                {MATERIAS.find(m => m.id === selectedMateria)?.icon}
+              </span>
+              <span className="selected-name">
+                {MATERIAS.find(m => m.id === selectedMateria)?.nombre}
+              </span>
+            </div>
+            <button 
+              className="btn-change-materia"
+              onClick={() => {
+                setSelectedMateria(null);
+                setMessages([messages[0]]); // Mantener solo el mensaje de bienvenida
+              }}
+            >
+              Cambiar Materia
+            </button>
+          </div>
+        )}
 
         <div className="messages-container">
           {messages.map((message, index) => (
@@ -135,27 +250,11 @@ function ChatbotPage() {
                   <span></span>
                   <span></span>
                 </div>
+                <p className="loading-text">Generando tu proyecto personalizado...</p>
               </div>
             </div>
           )}
         </div>
-
-        {messages.length === 1 && (
-          <div className="quick-suggestions">
-            <p>Sugerencias rápidas:</p>
-            <div className="suggestions-grid">
-              {quickSuggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  className="suggestion-chip"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="input-container">
           <textarea
@@ -163,14 +262,18 @@ function ChatbotPage() {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe qué proyecto quieres crear..."
+            placeholder={
+              selectedMateria 
+                ? "Describe qué proyecto quieres crear..." 
+                : "Primero selecciona una materia arriba ☝️"
+            }
             rows={3}
-            disabled={isLoading}
+            disabled={isLoading || !selectedMateria}
           />
           <button
             className="send-button"
             onClick={handleSendMessage}
-            disabled={!userInput.trim() || isLoading}
+            disabled={!userInput.trim() || isLoading || !selectedMateria}
           >
             {isLoading ? '⏳' : '📤'}
           </button>
@@ -178,10 +281,10 @@ function ChatbotPage() {
 
         <div className="chatbot-footer">
           <div className="integration-notice">
-            <span className="notice-icon">💡</span>
+            <span className="notice-icon">✅</span>
             <p>
-              <strong>Nota:</strong> La integración con IA está lista para implementarse. 
-              Consulta <code>ai-integration-example.js</code> para conectar con Claude, OpenAI o Gemini.
+              <strong>IA Integrada:</strong> Este chatbot está conectado con Google Gemini AI y 
+              usa los temarios de <code>{selectedMateria ? MATERIAS.find(m => m.id === selectedMateria)?.nombre : 'la materia seleccionada'}</code> para generar proyectos relevantes.
             </p>
           </div>
         </div>
@@ -192,40 +295,66 @@ function ChatbotPage() {
           <h3>¿Cómo funciona?</h3>
           <ol>
             <li>
-              <strong>Describe tu proyecto:</strong> Dile al asistente qué tema te gustaría aprender.
+              <strong>Selecciona una materia:</strong> Elige entre Fundamentos, Estructuras o Análisis.
             </li>
             <li>
-              <strong>La IA genera ejercicios:</strong> Crea un proyecto completo con ejercicios progresivos.
+              <strong>Describe tu proyecto:</strong> Dile a la IA qué temas quieres practicar.
             </li>
             <li>
-              <strong>Guarda y practica:</strong> El proyecto se agrega automáticamente a tu lista.
+              <strong>Genera y practica:</strong> La IA crea ejercicios basados en el temario oficial.
             </li>
           </ol>
         </div>
 
         <div className="info-card">
-          <h3>Ejemplos de proyectos</h3>
+          <h3>Materias Seriadas</h3>
+          <div className="seriacion-visual">
+            <div className="seriacion-item">
+              <span className="seriacion-icon">📚</span>
+              <span className="seriacion-text">Fundamentos</span>
+            </div>
+            <span className="seriacion-arrow">→</span>
+            <div className="seriacion-item">
+              <span className="seriacion-icon">🔗</span>
+              <span className="seriacion-text">Estructuras</span>
+            </div>
+            <span className="seriacion-arrow">→</span>
+            <div className="seriacion-item">
+              <span className="seriacion-icon">📊</span>
+              <span className="seriacion-text">Análisis</span>
+            </div>
+          </div>
+          <p className="seriacion-note">
+            Las materias avanzadas incluyen todos los temas de las anteriores
+          </p>
+        </div>
+
+        <div className="info-card">
+          <h3>Ejemplos de Solicitudes</h3>
           <ul>
-            <li>📝 Manejo de Strings en C</li>
-            <li>🔗 Introducción a Punteros</li>
-            <li>📊 Arrays y Matrices</li>
-            <li>🗂️ Estructuras (struct)</li>
-            <li>📁 Manejo de Archivos</li>
-            <li>🔄 Recursividad</li>
+            <li><strong>Fundamentos:</strong> "Quiero practicar bucles y arrays"</li>
+            <li><strong>Estructuras:</strong> "Crea ejercicios de pilas y colas"</li>
+            <li><strong>Análisis:</strong> "Proyecto sobre programación dinámica"</li>
           </ul>
         </div>
 
         <div className="info-card">
-          <h3>Implementación IA</h3>
+          <h3>Temarios Oficiales</h3>
           <p>
-            Para activar la generación de proyectos con IA, necesitas:
+            Los ejercicios generados se basan en los temarios oficiales de cada materia,
+            guardados en archivos CSV. La IA solo usa temas apropiados para el nivel seleccionado.
           </p>
-          <ul>
-            <li>Configurar una API key (Claude, OpenAI, etc.)</li>
-            <li>Crear endpoint <code>/api/generate-project</code></li>
-            <li>Implementar la lógica en el backend</li>
-          </ul>
-          <a href="#" className="docs-link">Ver documentación →</a>
+          <div className="temarios-list">
+            <div className="temario-item">
+              <span>📚</span> fundamentos-programacion.csv
+            </div>
+            <div className="temario-item">
+              <span>🔗</span> estructuras-datos.csv
+            </div>
+            <div className="temario-item">
+              <span>📊</span> analisis-algoritmos.csv
+            </div>
+          </div>
         </div>
       </div>
     </div>

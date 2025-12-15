@@ -1,0 +1,55 @@
+Tema
+Arquitectura de Von Neumann
+Clasificaciones de los lenguajes de programación
+Herramientas de programación
+Algoritmos y pseudocódigo
+Lenguaje C
+Tipos de datos primitivos
+Operadores aritméticos
+Operadores relacionales
+Operadores lógicos
+Entrada y salida estándar (printf y scanf)
+Sentencias de control if-else
+Sentencias de control switch
+Bucles while
+Bucles do-while
+Bucles for
+Bucles anidados
+Arreglos unidimensionales
+Arreglos multidimensionales
+Strings (cadenas de caracteres)
+Teorema de la programación estructurada
+Modularidad y diseño estructurado
+Apuntadores y direcciones de memoria
+Operadores de dirección e indirección
+Aritmética de apuntadores
+Manejo de arreglos con apuntadores
+Estructuras (struct)
+Declaración e instancia de estructuras
+Apuntador a estructura
+Operadores de estructura
+Arreglos de estructuras
+Estructuras anidadas
+Funciones
+Argumentos y parámetros
+Paso por valor
+Paso por referencia
+Valor de retorno
+Bibliotecas creadas por el usuario
+Recursión
+Pasos base y pasos recursivos
+Tipos de recursión
+Recursión versus iteración
+Arquitectura de memoria (Harvard y Von Neumann)
+Memoria de un proceso
+Reservación dinámica de memoria (malloc, calloc)
+Liberación de memoria (free)
+Acceso a arreglos dinámicos
+Memoria estática versus memoria dinámica
+Archivos de acceso secuencial
+Archivos de acceso directo
+Creación y apertura de archivos (fopen, fclose)
+Lectura y escritura en modo texto
+Lectura y escritura en modo binario
+Procesamiento de flujos de entrada y salida
+Redireccionamiento de flujos

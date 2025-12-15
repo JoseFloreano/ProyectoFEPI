@@ -48,29 +48,28 @@ app.post('/api/compile', async (req, res) => {
       
       switch (result.errorType) {
         case 'compilation':
-          // aiSuggestion = await analyzeCompilationError({
-          //   code, 
-          //   error: result.error, 
-          //   exerciseId
-          // });
+          aiSuggestion = await aiService.analizarErrorCompilacion({
+            code, 
+            error: result.error, 
+            materia: req.body.materia || 'fundamentos'
+          });
           break;
           
         case 'runtime':
-          // aiSuggestion = await analyzeRuntimeError({
-          //   code, 
-          //   error: result.error, 
-          //   exerciseId
-          // });
+          aiSuggestion = await aiService.analizarErrorEjecucion({
+            code, 
+            error: result.error, 
+            materia: req.body.materia || 'fundamentos'
+          });
           break;
           
         case 'incorrect_output':
-          // aiSuggestion = await analyzeIncorrectOutput({
-          //   code, 
-          //   actualOutput: result.output,
-          //   expectedOutput: result.expectedOutput, 
-          //   exerciseId
-          // });
-          aiSuggestion = "La IA analizará tu código y te dará sugerencias personalizadas.";
+          aiSuggestion = await aiService.analizarOutputIncorrecto({
+            code, 
+            actualOutput: result.output,
+            expectedOutput: result.expectedOutput, 
+            materia: req.body.materia || 'fundamentos'
+          });
           break;
       }
       
@@ -185,3 +184,74 @@ process.on('unhandledRejection', (reason, promise) => {
 // ========================================================================
 
 startServer();
+
+// ========================================================================
+// ENDPOINT PARA GENERAR PROYECTOS CON IA
+// ========================================================================
+
+const aiService = require('./ai/aiService');
+
+/**
+ * Endpoint para generar proyectos personalizados con IA
+ * POST /api/generate-project
+ * Body: { userRequest, materia, conversationHistory }
+ */
+app.post('/api/generate-project', async (req, res) => {
+  const { userRequest, materia, conversationHistory } = req.body;
+
+  console.log(`🤖 Generando proyecto con IA - Materia: ${materia}`);
+
+  try {
+    const result = await aiService.generarProyectoConIA({
+      userRequest,
+      materia,
+      conversationHistory
+    });
+
+    if (result.success) {
+      console.log(`✅ Proyecto "${result.project.name}" generado exitosamente`);
+      res.json(result);
+    } else {
+      console.log(`⚠️  Error al generar proyecto: ${result.error}`);
+      res.status(400).json(result);
+    }
+
+  } catch (error) {
+    console.error('❌ Error en generación de proyecto:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno al generar el proyecto',
+      suggestion: 'Verifica que la API key de Gemini esté configurada correctamente'
+    });
+  }
+});
+
+/**
+ * Endpoint para obtener materias disponibles
+ * GET /api/materias
+ */
+app.get('/api/materias', (req, res) => {
+  const materias = aiService.obtenerMateriasDisponibles();
+  res.json({ materias });
+});
+
+/**
+ * Endpoint para obtener temas de una materia
+ * GET /api/temas/:materia
+ */
+app.get('/api/temas/:materia', async (req, res) => {
+  const { materia } = req.params;
+
+  try {
+    const temas = await aiService.obtenerTemasDisponibles(materia);
+    res.json({ 
+      materia: aiService.getNombreMateria(materia),
+      temas 
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'No se pudieron cargar los temas',
+      message: error.message
+    });
+  }
+});

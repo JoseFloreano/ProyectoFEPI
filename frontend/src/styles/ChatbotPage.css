@@ -333,3 +333,257 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Selector de Materias */
+.materia-selector {
+  padding: 2rem;
+  background: var(--bg-primary);
+}
+
+.materia-selector h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.selector-description {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.materias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.materia-card {
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.materia-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--materia-color);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.materia-card:hover {
+  border-color: var(--materia-color);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.materia-card:hover::before {
+  transform: scaleX(1);
+}
+
+.materia-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.materia-icon {
+  font-size: 2.5rem;
+}
+
+.materia-nivel {
+  background: var(--bg-tertiary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.materia-card h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.materia-descripcion {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.temas-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.temas-preview strong {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.temas-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tema-tag {
+  background: var(--bg-tertiary);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.materia-incluye {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--primary);
+  text-align: center;
+}
+
+/* Materia Seleccionada */
+.materia-selected {
+  padding: 1rem 2rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.selected-icon {
+  font-size: 1.5rem;
+}
+
+.selected-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-change-materia {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-change-materia:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+/* Loading text */
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Seriación Visual */
+.seriacion-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.seriacion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seriacion-icon {
+  font-size: 2rem;
+}
+
+.seriacion-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.seriacion-arrow {
+  font-size: 1.5rem;
+  color: var(--text-dim);
+}
+
+.seriacion-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Temarios List */
+.temarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.temario-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 768px) {
+  .materias-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seriacion-visual {
+    flex-direction: column;
+  }
+
+  .seriacion-arrow {
+    transform: rotate(90deg);
+  }
+}
