@@ -1,7 +1,9 @@
-// server.js - Servidor Express modularizado
+// server.js - Servidor Express con integración de IA
+require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
 const cCompiler = require('./compiler/cCompiler');
+const aiService = require('./services/aiService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,12 +28,12 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
- * Endpoint principal de compilación
+ * Endpoint principal de compilación con análisis de IA
  * POST /api/compile
- * Body: { code, expectedOutput, exerciseId }
+ * Body: { code, expectedOutput, exerciseId, materia }
  */
 app.post('/api/compile', async (req, res) => {
-  const { code, expectedOutput, exerciseId } = req.body;
+  const { code, expectedOutput, exerciseId, materia = 'fundamentos' } = req.body;
 
   console.log(`📝 Compilando ejercicio #${exerciseId}...`);
 
@@ -39,42 +41,46 @@ app.post('/api/compile', async (req, res) => {
     // Compilar y ejecutar el código
     const result = await cCompiler.compileAndRun(code, expectedOutput, exerciseId);
 
-    // Si hay error, aquí se puede integrar la IA
+    // Si hay error, usar IA para generar sugerencias
     if (!result.success || !result.isCorrect) {
-      // AQUÍ SE IMPLEMENTARÍA LA LLAMADA A LA IA
-      // Dependiendo del tipo de error:
-      
       let aiSuggestion = null;
       
-      switch (result.errorType) {
-        case 'compilation':
-          aiSuggestion = await aiService.analizarErrorCompilacion({
-            code, 
-            error: result.error, 
-            materia: req.body.materia || 'fundamentos'
-          });
-          break;
-          
-        case 'runtime':
-          aiSuggestion = await aiService.analizarErrorEjecucion({
-            code, 
-            error: result.error, 
-            materia: req.body.materia || 'fundamentos'
-          });
-          break;
-          
-        case 'incorrect_output':
-          aiSuggestion = await aiService.analizarOutputIncorrecto({
-            code, 
-            actualOutput: result.output,
-            expectedOutput: result.expectedOutput, 
-            materia: req.body.materia || 'fundamentos'
-          });
-          break;
+      try {
+        switch (result.errorType) {
+          case 'compilation':
+            aiSuggestion = await aiService.analizarErrorCompilacion({
+              code, 
+              error: result.error, 
+              materia
+            });
+            break;
+            
+          case 'runtime':
+            aiSuggestion = await aiService.analizarErrorEjecucion({
+              code, 
+              error: result.error, 
+              materia
+            });
+            break;
+            
+          case 'incorrect_output':
+            aiSuggestion = await aiService.analizarOutputIncorrecto({
+              code, 
+              actualOutput: result.output,
+              expectedOutput: result.expectedOutput, 
+              materia
+            });
+            break;
+        }
+        
+        // Agregar sugerencia de IA al resultado
+        if (aiSuggestion) {
+          result.aiSuggestion = aiSuggestion;
+        }
+      } catch (aiError) {
+        console.error('⚠️  Error al obtener sugerencia de IA:', aiError.message);
+        // Continuar sin sugerencia de IA
       }
-      
-      // Agregar sugerencia de IA al resultado
-      result.aiSuggestion = aiSuggestion;
     }
 
     // Log del resultado
@@ -97,6 +103,88 @@ app.post('/api/compile', async (req, res) => {
       success: false,
       error: 'Error interno del servidor',
       isCorrect: false
+    });
+  }
+});
+
+/**
+ * Endpoint para generar proyectos personalizados con IA
+ * POST /api/generate-project
+ * Body: { userRequest, materia, conversationHistory }
+ */
+app.post('/api/generate-project', async (req, res) => {
+  const { userRequest, materia, conversationHistory } = req.body;
+
+  console.log(`🤖 Generando proyecto con IA - Materia: ${materia}`);
+
+  try {
+    const result = await aiService.generarProyectoConIA({
+      userRequest,
+      materia,
+      conversationHistory
+    });
+
+    if (result.success) {
+      console.log(`✅ Proyecto "${result.project.name}" generado exitosamente`);
+      res.json(result);
+    } else {
+      console.log(`⚠️  Error al generar proyecto: ${result.error}`);
+      res.status(400).json(result);
+    }
+
+  } catch (error) {
+    console.error('❌ Error en generación de proyecto:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno al generar el proyecto',
+      suggestion: 'Verifica que la API key de Gemini esté configurada correctamente en el archivo .env'
+    });
+  }
+});
+
+/**
+ * Endpoint para obtener materias disponibles
+ * GET /api/materias
+ */
+app.get('/api/materias', (req, res) => {
+  try {
+    const materias = aiService.obtenerMateriasDisponibles();
+    res.json({ materias });
+  } catch (error) {
+    console.error('❌ Error al obtener materias:', error);
+    res.status(500).json({
+      error: 'No se pudieron cargar las materias',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint para obtener temas de una materia específica
+ * GET /api/temas/:materia
+ */
+app.get('/api/temas/:materia', async (req, res) => {
+  const { materia } = req.params;
+
+  try {
+    const temas = await aiService.obtenerTemasDisponibles(materia);
+    
+    // Obtener nombre legible de la materia
+    const nombresMateria = {
+      'fundamentos': 'Fundamentos de Programación',
+      'estructuras': 'Algoritmos y Estructuras de Datos',
+      'analisis': 'Análisis y Diseño de Algoritmos'
+    };
+    
+    res.json({ 
+      materia: nombresMateria[materia] || materia,
+      temas 
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener temas:', error);
+    res.status(500).json({
+      error: 'No se pudieron cargar los temas',
+      message: error.message
     });
   }
 });
@@ -131,6 +219,12 @@ app.use((err, req, res, next) => {
  */
 async function startServer() {
   try {
+    // Verificar que existe la API key de Gemini
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn('⚠️  ADVERTENCIA: GEMINI_API_KEY no está configurada en .env');
+      console.warn('   Las funciones de IA no estarán disponibles\n');
+    }
+
     // Inicializar el compilador
     await cCompiler.initialize();
     
@@ -143,7 +237,17 @@ async function startServer() {
       console.log(`⚠️  Asegúrate de tener GCC instalado en tu sistema\n`);
       console.log('Endpoints disponibles:');
       console.log(`  - GET  /api/health`);
-      console.log(`  - POST /api/compile\n`);
+      console.log(`  - POST /api/compile`);
+      console.log(`  - POST /api/generate-project`);
+      console.log(`  - GET  /api/materias`);
+      console.log(`  - GET  /api/temas/:materia\n`);
+      
+      if (process.env.GEMINI_API_KEY) {
+        console.log('✅ Integración con Google Gemini AI activa');
+      } else {
+        console.log('⚠️  Integración con IA deshabilitada (falta GEMINI_API_KEY)');
+      }
+      console.log('');
     });
   } catch (error) {
     console.error('❌ Error al iniciar el servidor:', error);
@@ -184,74 +288,3 @@ process.on('unhandledRejection', (reason, promise) => {
 // ========================================================================
 
 startServer();
-
-// ========================================================================
-// ENDPOINT PARA GENERAR PROYECTOS CON IA
-// ========================================================================
-
-const aiService = require('./ai/aiService');
-
-/**
- * Endpoint para generar proyectos personalizados con IA
- * POST /api/generate-project
- * Body: { userRequest, materia, conversationHistory }
- */
-app.post('/api/generate-project', async (req, res) => {
-  const { userRequest, materia, conversationHistory } = req.body;
-
-  console.log(`🤖 Generando proyecto con IA - Materia: ${materia}`);
-
-  try {
-    const result = await aiService.generarProyectoConIA({
-      userRequest,
-      materia,
-      conversationHistory
-    });
-
-    if (result.success) {
-      console.log(`✅ Proyecto "${result.project.name}" generado exitosamente`);
-      res.json(result);
-    } else {
-      console.log(`⚠️  Error al generar proyecto: ${result.error}`);
-      res.status(400).json(result);
-    }
-
-  } catch (error) {
-    console.error('❌ Error en generación de proyecto:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error interno al generar el proyecto',
-      suggestion: 'Verifica que la API key de Gemini esté configurada correctamente'
-    });
-  }
-});
-
-/**
- * Endpoint para obtener materias disponibles
- * GET /api/materias
- */
-app.get('/api/materias', (req, res) => {
-  const materias = aiService.obtenerMateriasDisponibles();
-  res.json({ materias });
-});
-
-/**
- * Endpoint para obtener temas de una materia
- * GET /api/temas/:materia
- */
-app.get('/api/temas/:materia', async (req, res) => {
-  const { materia } = req.params;
-
-  try {
-    const temas = await aiService.obtenerTemasDisponibles(materia);
-    res.json({ 
-      materia: aiService.getNombreMateria(materia),
-      temas 
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'No se pudieron cargar los temas',
-      message: error.message
-    });
-  }
-});
