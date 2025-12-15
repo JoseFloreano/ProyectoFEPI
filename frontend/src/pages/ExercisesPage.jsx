@@ -84,6 +84,7 @@ function ExercisesPage() {
   };
 
   return (
+    <div className="page-wrapper full-width">
     <div className="exercises-page">
       {/* Selector de Proyectos */}
       <aside className="projects-sidebar">
@@ -217,6 +218,7 @@ function ExercisesPage() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

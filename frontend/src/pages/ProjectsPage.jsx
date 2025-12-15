@@ -74,6 +74,7 @@ function ProjectsPage() {
   };
 
   return (
+    <div className="page-wrapper">
     <div className="projects-page">
       <div className="projects-header">
         <h1>🚀 Proyectos Finales</h1>
@@ -210,6 +211,7 @@ function ProjectsPage() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

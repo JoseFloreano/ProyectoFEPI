@@ -29,6 +29,11 @@
 
   --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+
+  /* ===== NUEVO: Variables para layout centrado ===== */
+  --page-max-width: 1400px;
+  --page-padding: 2rem;
+  --page-padding-mobile: 1rem;
 }
 
 * {
@@ -54,6 +59,20 @@ body {
 .main-content {
   flex: 1;
   padding-top: 64px; /* Altura del navbar */
+}
+
+/* ===== NUEVO: Wrapper para centrar páginas ===== */
+.page-wrapper {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--page-padding);
+  width: 100%;
+}
+
+/* Para páginas que necesitan ancho completo (ej: ExercisesPage con editor) */
+.page-wrapper.full-width {
+  max-width: 100%;
+  padding: 0;
 }
 
 /* Scrollbar personalizada */
@@ -192,5 +211,10 @@ button:disabled {
 @media (max-width: 768px) {
   .main-content {
     padding-top: 56px;
+  }
+
+  /* ===== NUEVO: Padding responsive para page-wrapper ===== */
+  .page-wrapper {
+    padding: var(--page-padding-mobile);
   }
 }

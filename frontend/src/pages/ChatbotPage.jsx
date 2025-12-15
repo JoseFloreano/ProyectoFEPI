@@ -140,6 +140,7 @@ function ChatbotPage() {
   };
 
   return (
+    <div className="page-wrapper">
     <div className="chatbot-page">
       <div className="chatbot-container">
         <div className="chatbot-header">
@@ -357,6 +358,7 @@ function ChatbotPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

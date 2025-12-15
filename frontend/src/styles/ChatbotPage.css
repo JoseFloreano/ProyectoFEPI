@@ -2,11 +2,8 @@
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
-  padding: 2rem;
   min-height: calc(100vh - 64px);
   background: var(--bg-secondary);
-  max-width: 1600px;
-  margin: 0 auto;
 }
 
 .chatbot-container {

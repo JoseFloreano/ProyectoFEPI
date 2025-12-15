@@ -3,6 +3,7 @@ import '../styles/HomePage.css';
 
 function HomePage({ onNavigate }) {
   return (
+  <div className="page-wrapper">
     <div className="home-page">
       <section className="hero-section">
         <div className="hero-content">
@@ -171,6 +172,7 @@ int main() {
           </button>
         </div>
       </section>
+    </div>
     </div>
   );
 }
