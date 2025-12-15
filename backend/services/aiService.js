@@ -311,7 +311,7 @@ Proporciona una explicación clara y educativa que incluya:
 Sé breve (máximo 200 palabras), amable y educativo. Usa emojis ocasionalmente.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
@@ -349,7 +349,7 @@ Explica brevemente:
 Máximo 200 palabras, amable y con emojis ocasionales.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
@@ -390,7 +390,7 @@ Analiza brevemente:
 NO des la solución completa. Máximo 200 palabras con emojis ocasionales.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
