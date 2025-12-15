@@ -64,8 +64,8 @@ body {
 /* ===== NUEVO: Wrapper para centrar páginas ===== */
 .page-wrapper {
   max-width: var(--page-max-width);
-  margin: 0 auto;
   padding: var(--page-padding);
+  margin: 0 auto;
   width: 100%;
 }
 
