@@ -6,7 +6,8 @@ function Navbar({ currentPage, onNavigate }) {
     { id: 'home', label: 'Inicio', icon: '🏠' },
     { id: 'exercises', label: 'Ejercicios', icon: '📝' },
     { id: 'projects', label: 'Proyectos', icon: '🚀' },
-    { id: 'chatbot', label: 'Crear con IA', icon: '💬' }
+    { id: 'chatbot', label: 'Crear con IA', icon: '💬' },
+    { id: 'materias', label: 'Temarios', icon: '📖' }
   ];
 
   return (

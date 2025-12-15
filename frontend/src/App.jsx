@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import ExercisesPage from './pages/ExercisesPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ChatbotPage from './pages/ChatbotPage';
+import MateriasPage from './pages/MateriasPage';
 import { DatabaseProvider } from './context/DatabaseContext';
 import './App.css';
 
@@ -21,6 +22,8 @@ function App() {
         return <ProjectsPage />;
       case 'chatbot':
         return <ChatbotPage />;
+      case 'materias':
+        return <MateriasPage />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }
