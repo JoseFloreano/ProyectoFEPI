@@ -1,9 +1,10 @@
 // cCompiler.js - Módulo para compilar y ejecutar código C
 const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
-
+const EXECUTION_TIMEOUT = process.env.EXECUTION_TIMEOUT || 5;
 // Directorio temporal para archivos C
 const TEMP_DIR = path.join(__dirname, '..', 'temp');
 
@@ -62,14 +63,22 @@ async function cleanup(cFilePath, executablePath) {
  */
 function compareOutputs(actual, expected) {
   const normalizeOutput = (str) => {
+    if (!str) return '';
+    
     return str
-      .trim()
-      .replace(/\r\n/g, '\n')
-      .replace(/\s+$/gm, '') // Eliminar espacios al final de cada línea
-      .replace(/\n+$/g, '\n'); // Normalizar saltos de línea finales
+      .trim()                    // Eliminar espacios al inicio/final
+      .replace(/\r\n/g, '\n')    // Normalizar saltos de línea Windows
+      .replace(/\r/g, '\n')      // Normalizar saltos de línea Mac
+      .replace(/\s+$/gm, '')     // Eliminar espacios al final de cada línea
+      .replace(/\n+/g, '\n')     // Normalizar múltiples saltos de línea a uno
+      .replace(/\s+/g, ' ')      // Normalizar múltiples espacios a uno
+      .trim();                   // Trim final
   };
 
-  return normalizeOutput(actual) === normalizeOutput(expected);
+  const normalizedActual = normalizeOutput(actual);
+  const normalizedExpected = normalizeOutput(expected);
+
+  return normalizedActual === normalizedExpected;
 }
 
 /**
@@ -138,6 +147,142 @@ function executeProgram(executablePath) {
   });
 }
 
+function execCommandWithInput(command, input = '', options = {}) {
+  return new Promise((resolve) => {
+    const { cwd, timeout = 5000 } = options;
+    
+    let output = '';
+    let errorOutput = '';
+    let timedOut = false;
+    let inputWritten = false;
+    
+    // ===== DEBUG: Ver qué llega =====
+    console.log('🔍 INPUT RECIBIDO:', input);
+    console.log('🔍 TIPO:', typeof input);
+    console.log('🔍 ES NULL/UNDEFINED?', input == null);
+    
+    // Convertir a string
+    const inputStr = (input != null) ? String(input) : '';
+    
+    console.log('🔍 INPUT STR:', inputStr);
+    console.log('🔍 INPUT STR LENGTH:', inputStr.trim().length);
+
+    const child = spawn(command, {
+      cwd,
+      shell: true,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+      resolve({
+        error: true,
+        output: 'Timeout: El programa tardó demasiado'
+      });
+    }, timeout);
+
+    child.stdout.on('data', (data) => {
+  const chunk = data.toString();
+  
+  // Si hay inputs y no se han agregado aún
+  if (inputStr && inputStr.trim().length > 0 && !inputWritten) {
+    // Buscar dónde termina el prompt (buscar el último ':' o '?' antes del output)
+    const promptMatch = chunk.match(/^(.+[:?]\s*)(.*)$/s);
+    
+    if (promptMatch) {
+      // Insertar inputs justo después del prompt
+      output += promptMatch[1];  // Prompt
+      output += inputStr.trim() + '\n';  // Inputs del usuario
+      output += promptMatch[2];  // Resto del output
+      inputWritten = true;
+    } else {
+      // Si no se encuentra el patrón, agregar normal
+      output += chunk;
+    }
+  } else {
+    output += chunk;
+  }
+});
+
+    child.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    // ===== MODIFICADO: Usar inputStr =====
+    if (inputStr) {
+      child.stdin.write(inputStr);
+      child.stdin.end();
+    }
+
+    child.on('close', (code) => {
+      clearTimeout(timeoutId);
+      if (timedOut) return;
+
+      if (code !== 0) {
+        resolve({
+          error: true,
+          output: errorOutput || output || `Proceso terminó con código ${code}`
+        });
+      } else {
+        resolve({
+          error: false,
+          output: output
+        });
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timeoutId);
+      if (!timedOut) {
+        resolve({
+          error: true,
+          output: err.message
+        });
+      }
+    });
+  });
+}
+
+
+function execCommand(command, options = {}) {
+  return new Promise((resolve) => {
+    const { timeout = 5000, cwd, input = '' } = options;
+
+    const child = exec(command, { 
+      cwd, 
+      timeout,
+      maxBuffer: 1024 * 1024 // 1MB
+    }, (error, stdout, stderr) => {
+      if (error) {
+        if (error.killed) {
+          resolve({ 
+            error: true, 
+            output: 'Timeout: El programa tardó demasiado en ejecutarse' 
+          });
+        } else {
+          resolve({ 
+            error: true, 
+            output: stderr || stdout || error.message 
+          });
+        }
+      } else {
+        resolve({ 
+          error: false, 
+          output: stdout 
+        });
+      }
+    });
+
+    // ← NUEVO: Escribir inputs al STDIN del proceso
+    if (input) {
+      child.stdin.write(input);
+      child.stdin.end();
+    }
+  });
+}
+
+
 /**
  * Función principal para compilar y ejecutar código C
  * @param {string} code - Código fuente en C
@@ -145,86 +290,85 @@ function executeProgram(executablePath) {
  * @param {number} exerciseId - ID del ejercicio
  * @returns {Promise<Object>} - Resultado de la compilación y ejecución
  */
-async function compileAndRun(code, expectedOutput, exerciseId) {
-  // Validar código
-  if (!code) {
-    return {
-      success: false,
-      error: 'No se proporcionó código para compilar',
-      isCorrect: false
-    };
-  }
-
-  // Generar nombre único para los archivos
-  const fileId = crypto.randomBytes(8).toString('hex');
-  const fileName = `program_${fileId}`;
-  const cFilePath = path.join(TEMP_DIR, `${fileName}.c`);
-  const executablePath = path.join(TEMP_DIR, fileName);
+async function compileAndRun(code, expectedOutput, exerciseId, userInputs = '') {
+  const workDir = path.join(__dirname, '../temp');
+  const fileName = `exercise_${exerciseId}_${Date.now()}`;
+  const sourceFile = path.join(workDir, `${fileName}.c`);
+  const execFile = path.join(workDir, fileName);
 
   try {
-    // Asegurar que el directorio temporal existe
-    await ensureTempDir();
+    // Guardar código fuente
+    await fs.writeFile(sourceFile, code, 'utf-8');
 
-    // Escribir el código en un archivo .c
-    await fs.writeFile(cFilePath, code, 'utf8');
+    // Compilar
+    const compileResult = await execCommandWithInput(
+      `gcc "${sourceFile}" -o "${execFile}" -Wall 2>&1`
+    );
 
-    // Compilar el código
-    const compileResult = await compileCode(cFilePath, executablePath);
-    
-    if (!compileResult.success) {
-      await cleanup(cFilePath, executablePath);
+    if (compileResult.error) {
       return {
         success: false,
-        error: compileResult.error,
-        isCorrect: false,
-        errorType: 'compilation'
+        error: compileResult.output,
+        errorType: 'compilation',
+        isCorrect: false
       };
     }
 
-    // Ejecutar el programa
-    const executeResult = await executeProgram(executablePath);
-    
-    if (!executeResult.success) {
-      await cleanup(cFilePath, executablePath);
+    // Ejecutar con inputs del usuario (STDIN)
+    const runCommand = process.platform === 'win32' 
+      ? `"${execFile}.exe"` 
+      : `./"${fileName}"`;
+
+    const runResult = await execCommandWithInput(
+  runCommand,        // 1er parámetro: comando
+  userInputs,        // 2do parámetro: inputs
+  {                  // 3er parámetro: opciones
+    cwd: workDir,
+    timeout: EXECUTION_TIMEOUT * 1000
+  }
+);
+
+    if (runResult.error) {
       return {
         success: false,
-        error: executeResult.error,
-        isCorrect: false,
-        errorType: 'runtime'
+        error: runResult.output || runResult.error,
+        errorType: 'runtime',
+        isCorrect: false
       };
     }
 
-    // Comparar outputs
-    const actualOutput = executeResult.output;
-    const isCorrect = compareOutputs(actualOutput, expectedOutput);
+    // Comparar output
+    const actualOutput = runResult.output.trim();
+const expectedOutputTrimmed = expectedOutput ? expectedOutput.trim() : '';
+const isCorrect = compareOutputs(actualOutput, expectedOutputTrimmed);
 
-    // Limpiar archivos temporales
-    await cleanup(cFilePath, executablePath);
-
-    // Retornar resultado exitoso
     return {
       success: true,
       output: actualOutput,
-      expectedOutput: expectedOutput,
-      isCorrect: isCorrect,
+      expectedOutput: expectedOutputTrimmed,
+      isCorrect,
       errorType: isCorrect ? null : 'incorrect_output'
     };
 
   } catch (error) {
-    console.error('Error en el proceso de compilación:', error);
-    
-    // Intentar limpiar archivos en caso de error
-    await cleanup(cFilePath, executablePath);
-    
     return {
       success: false,
-      error: 'Error interno del servidor: ' + error.message,
-      isCorrect: false,
-      errorType: 'internal'
+      error: error.message,
+      errorType: 'runtime',
+      isCorrect: false
     };
+  } finally {
+    // Limpiar archivos
+    try {
+      await fs.unlink(sourceFile).catch(() => {});
+      if (process.platform === 'win32') {
+        await fs.unlink(`${execFile}.exe`).catch(() => {});
+      } else {
+        await fs.unlink(execFile).catch(() => {});
+      }
+    } catch (e) {}
   }
 }
-
 /**
  * Inicializa el módulo del compilador
  */

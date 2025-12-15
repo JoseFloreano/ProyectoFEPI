@@ -33,13 +33,14 @@ app.get('/api/health', (req, res) => {
  * Body: { code, expectedOutput, exerciseId, materia }
  */
 app.post('/api/compile', async (req, res) => {
-  const { code, expectedOutput, exerciseId, materia = 'fundamentos' } = req.body;
+  const { code, expectedOutput, exerciseId, materia = 'fundamentos', userInputs = '' } = req.body;
+  const inputsStr = userInputs != null ? String(userInputs) : '';
 
   console.log(`📝 Compilando ejercicio #${exerciseId}...`);
 
   try {
     // Compilar y ejecutar el código
-    const result = await cCompiler.compileAndRun(code, expectedOutput, exerciseId);
+    const result = await cCompiler.compileAndRun(code, expectedOutput, exerciseId, inputsStr);
 
     // Si hay error, usar IA para generar sugerencias
     if (!result.success || !result.isCorrect) {

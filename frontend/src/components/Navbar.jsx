@@ -13,7 +13,7 @@ function Navbar({ currentPage, onNavigate }) {
     <nav className="navbar">
       <div className="navbar-brand" onClick={() => onNavigate('home')}>
         <span className="logo-icon">{'{ }'}</span>
-        <span className="logo-text">C Practice Lab</span>
+        <span className="logo-text">ESCOMENTOR</span>
       </div>
       
       <div className="navbar-menu">
