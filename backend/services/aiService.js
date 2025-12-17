@@ -24,7 +24,7 @@ const TEMARIOS = {
 async function leerTemasCSV(filePath) {
   return new Promise((resolve, reject) => {
     const temas = [];
-    
+
     createReadStream(filePath)
       .pipe(csv())
       .on('data', (row) => {
@@ -155,10 +155,10 @@ REGLAS IMPORTANTES:
 
     // Limpiar y parsear la respuesta
     let jsonText = text.trim();
-    
+
     // Remover markdown code blocks si existen
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
+
     // Intentar parsear el JSON
     const projectData = JSON.parse(jsonText);
 
@@ -172,7 +172,7 @@ REGLAS IMPORTANTES:
 
   } catch (error) {
     console.error('Error al generar proyecto con IA:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -189,7 +189,7 @@ REGLAS IMPORTANTES:
  */
 function validarYCompletarProyecto(projectData, materia) {
   const timestamp = Date.now();
-  
+
   // Validar campos requeridos
   if (!projectData.name || !projectData.exercises || !projectData.finalProject) {
     throw new Error('El proyecto generado no tiene la estructura correcta');
@@ -302,19 +302,17 @@ ${code}
 ERROR:
 ${error}
 
-Proporciona una explicación clara y educativa que incluya:
-1. Qué significa el error en términos simples
-2. Por qué ocurrió (causa raíz)
-3. Cómo corregirlo (sin dar la solución completa)
-4. Un consejo para evitar este error en el futuro
+Proporciona una explicación clara, sencilla y educativa que incluya:
+Cómo corregirlo (sin dar la solución completa)
+Un consejo para evitar este error en el futuro
 
-Sé breve (máximo 200 palabras), amable y educativo. Usa emojis ocasionalmente.
+Sé breve (máximo 50 palabras), amable y educativo. Usa emojis ocasionalmente.
 `;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    
+
     return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);
@@ -341,18 +339,16 @@ ERROR:
 ${error}
 
 Explica brevemente:
-1. Qué tipo de error de ejecución es
-2. Posibles causas en el código
-3. Cómo debuggearlo
-4. Una pista para corregirlo
+Posibles causas en el código
+Una pista para corregirlo
 
-Máximo 200 palabras, amable y con emojis ocasionales.
+Máximo 50 palabras, amable y con emojis ocasionales.
 `;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    
+
     return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);
@@ -387,13 +383,13 @@ Analiza brevemente:
 3. Pistas específicas sobre qué revisar
 4. Un consejo para verificar el output
 
-NO des la solución completa. Máximo 200 palabras con emojis ocasionales.
+NO des la solución completa. Máximo 50 palabras con emojis ocasionales.
 `;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    
+
     return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);

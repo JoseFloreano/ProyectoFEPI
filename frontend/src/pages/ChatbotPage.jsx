@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useDatabase } from '../context/DatabaseContext';
 import '../styles/ChatbotPage.css';
 
@@ -237,7 +238,7 @@ function ChatbotPage() {
                 {message.role === 'assistant' ? '🤖' : '👤'}
               </div>
               <div className="message-content">
-                <pre>{message.content}</pre>
+                <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
             </div>
           ))}

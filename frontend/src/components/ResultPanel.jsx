@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import '../styles/ResultPanel.css';
 
 function ResultPanel({ result }) {
@@ -42,7 +43,7 @@ function ResultPanel({ result }) {
                   Sugerencia de IA
                 </h4>
                 <div className="suggestion-content">
-                  {result.aiSuggestion}
+                  <ReactMarkdown>{result.aiSuggestion}</ReactMarkdown>
                 </div>
               </div>
             )}
@@ -69,7 +70,7 @@ function ResultPanel({ result }) {
                   Sugerencia de IA
                 </h4>
                 <div className="suggestion-content">
-                  {result.aiSuggestion}
+                  <ReactMarkdown>{result.aiSuggestion}</ReactMarkdown>
                 </div>
               </div>
             )}
