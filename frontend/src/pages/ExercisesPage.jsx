@@ -11,7 +11,7 @@ function ExercisesPage() {
     setActiveProjectById, 
     completeExercise, 
     isExerciseCompleted,
-    getProjectProgress 
+    getProjectProgress
   } = useDatabase();
 
   const [selectedExercise, setSelectedExercise] = useState(null);
@@ -19,6 +19,11 @@ function ExercisesPage() {
   const [compilationResult, setCompilationResult] = useState(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [userInputs, setUserInputs] = useState('');
+  const [theoryCache, setTheoryCache] = useState({});
+  const [loadingTheory, setLoadingTheory] = useState(false);
+  const [showTheory, setShowTheory] = useState(false);
+
+
 
   // ===== NUEVO: Detectar si el código necesita inputs =====
   const needsInput = userCode.includes('scanf') || 
@@ -39,8 +44,9 @@ function ExercisesPage() {
   const handleExerciseSelect = (exercise) => {
     setSelectedExercise(exercise);
     setUserCode(exercise.starterCode);
-    setCompilationResult(null);
     setUserInputs(''); // Limpiar inputs al cambiar de ejercicio
+    setShowTheory(false);
+    setLoadingTheory(false);
   };
 
   // Manejar cambio de código
@@ -92,7 +98,57 @@ function ExercisesPage() {
     } finally {
       setIsCompiling(false);
     }
+
   };
+
+  const handleGetTheory = async () => {
+    if (!selectedExercise) return;
+
+    const exerciseId = selectedExercise.id;
+
+    // Si ya está visible, solo ocultar
+    if (showTheory) {
+      setShowTheory(false);
+      return;
+    }
+
+    setShowTheory(true);
+
+    // 🔥 Si ya existe teoría para este ejercicio, NO llamar a IA
+    if (theoryCache[exerciseId]) return;
+
+    setLoadingTheory(true);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/theory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materia: 'fundamentos',
+          topics: selectedExercise.theoryTopics || [
+            selectedExercise.title
+          ]
+        })
+      });
+
+      const data = await response.json();
+
+      setTheoryCache(prev => ({
+        ...prev,
+        [exerciseId]: data.text || 'No se pudo generar la teoría.'
+      }));
+
+    } catch (error) {
+      console.error(error);
+      setTheoryCache(prev => ({
+        ...prev,
+        [exerciseId]: '❌ Error al conectar con el servidor.'
+      }));
+    } finally {
+      setLoadingTheory(false);
+    }
+  };
+
 
   return (
     <div className="page-wrapper full-width">
@@ -196,11 +252,28 @@ function ExercisesPage() {
                     <span className="completed-badge-large">✓ Completado</span>
                   )}
                 </div>
-                
+                {/* ===== Botón ver teoría ===== */}
+                <div className="theory-section">
+                  <button
+                    className="theory-button"
+                    onClick={handleGetTheory}
+                    disabled={loadingTheory}
+                  >
+                    📘 {loadingTheory ? 'Cargando teoría...' : 'Ver teoría IA'}
+                  </button>
+
+                  {showTheory && (
+                    <div className="theory-box">
+                      <h4>Teoría Relacionada:</h4>
+                      <p>{theoryCache[selectedExercise.id]}</p>
+                    </div>
+                  )}
+
+                </div>                
                 <p className="exercise-description">{selectedExercise.description}</p>
                 
                 <div className="expected-output-box">
-                  <h4>Output Esperado:</h4>
+                  <h4>Output Esperado cambio:</h4>
                   <pre>{selectedExercise.expectedOutput}</pre>
                 </div>
 

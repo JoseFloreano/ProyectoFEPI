@@ -472,6 +472,72 @@
     transform: translateY(0);
   }
 }
+.theory-section {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 10px var(--shadow-md);
+}
+
+.theory-button {
+  background: var(--gradient-primary);
+  color: var(--text-primary);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.theory-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.theory-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.theory-box {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  animation: fadeInTheory 0.25s ease-in-out;
+}
+
+.theory-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.theory-box p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+@keyframes fadeInTheory {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 
 
 

@@ -397,6 +397,45 @@ NO des la solución completa. Máximo 50 palabras con emojis ocasionales.
   }
 }
 
+/**
+ * Genera teoría educativa a partir de topics específicos
+ * @param {Object} params
+ * @param {Array<string>} params.topics - Temas del ejercicio
+ * @param {string} params.materia - Materia del curso
+ * @returns {Promise<string>}
+ */
+async function generarTeoriaPorTemas({ topics, materia }) {
+  try {
+    const prompt = `
+Eres un profesor experto en programación en C para ${getNombreMateria(materia)}.
+
+Explica de forma clara, breve y educativa los siguientes temas:
+
+TEMAS:
+${topics.map(t => `- ${t}`).join('\n')}
+
+REGLAS:
+- Explica como para estudiante universitario
+- Usa ejemplos pequeños en C si es necesario
+- No más de 120 palabras
+- Tono claro, didáctico y amigable
+- NO uses markdown ni títulos
+- Todo debe ser texto plano
+`;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+
+    return response.text();
+
+  } catch (error) {
+    console.error('Error al generar teoría:', error);
+    return 'No se pudo generar la teoría en este momento.';
+  }
+}
+
+
 module.exports = {
   generarProyectoConIA,
   obtenerTemasDisponibles,
@@ -404,5 +443,6 @@ module.exports = {
   analizarErrorCompilacion,
   analizarErrorEjecucion,
   analizarOutputIncorrecto,
+  generarTeoriaPorTemas,
   getNombreMateria
 };

@@ -190,6 +190,39 @@ app.get('/api/temas/:materia', async (req, res) => {
   }
 });
 
+/**
+ * Endpoint para generar teoría dinámica con IA
+ * POST /api/theory
+ * Body: { topics: [], materia }
+ */
+app.post('/api/theory', async (req, res) => {
+  const { topics, materia = 'fundamentos' } = req.body;
+
+  if (!topics || !Array.isArray(topics) || topics.length === 0) {
+    return res.status(400).json({
+      error: 'Topics inválidos o vacíos'
+    });
+  }
+
+  console.log(`📘 Generando teoría IA - Materia: ${materia}`);
+  console.log(`📚 Topics:`, topics);
+
+  try {
+    const text = await aiService.generarTeoriaPorTemas({
+      topics,
+      materia
+    });
+
+    res.json({ text });
+
+  } catch (error) {
+    console.error('❌ Error al generar teoría:', error);
+    res.status(500).json({
+      error: 'Error al generar la teoría'
+    });
+  }
+});
+
 // ========================================================================
 // MANEJO DE ERRORES GLOBAL
 // ========================================================================
