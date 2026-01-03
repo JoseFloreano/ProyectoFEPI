@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
+import { compilerAPI } from '../services/apiService';
+import { dualSave } from '../services/syncService';
 import CodeEditor from '../components/CodeEditor';
 import ResultPanel from '../components/ResultPanel';
 import '../styles/ExercisesPage.css';
@@ -23,57 +25,44 @@ function ExercisesPage() {
   const [loadingTheory, setLoadingTheory] = useState(false);
   const [showTheory, setShowTheory] = useState(false);
 
-
-
-  // ===== NUEVO: Detectar si el código necesita inputs =====
   const needsInput = userCode.includes('scanf') || 
                      userCode.includes('gets') || 
                      userCode.includes('fgets') ||
                      userCode.includes('getchar') ||
                      userCode.includes('getc');
 
-  // Manejar selección de proyecto
   const handleProjectSelect = (project) => {
     setActiveProjectById(project.id);
     setSelectedExercise(null);
     setCompilationResult(null);
-    setUserInputs(''); // Limpiar inputs al cambiar de proyecto
+    setUserInputs('');
   };
 
-  // Manejar selección de ejercicio
   const handleExerciseSelect = (exercise) => {
     setSelectedExercise(exercise);
     setUserCode(exercise.starterCode);
-    setUserInputs(''); // Limpiar inputs al cambiar de ejercicio
+    setUserInputs('');
     setShowTheory(false);
     setLoadingTheory(false);
   };
 
-  // Manejar cambio de código
   const handleCodeChange = (code) => {
     setUserCode(code);
   };
 
-  // Compilar código
+  // ===== COMPILAR CON INTEGRACIÓN HÍBRIDA =====
   const handleCompile = async () => {
     setIsCompiling(true);
     setCompilationResult(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/compile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: userCode,
-          expectedOutput: selectedExercise.expectedOutput,
-          exerciseId: selectedExercise.id,
-          userInputs: userInputs // Enviar inputs al backend
-        }),
-      });
-
-      const result = await response.json();
+      // Usar apiService en lugar de fetch directo
+      const result = await compilerAPI.compile(
+        userCode,
+        selectedExercise.expectedOutput,
+        selectedExercise.id,
+        userInputs
+      );
       
       setCompilationResult({
         success: result.success,
@@ -84,9 +73,14 @@ function ExercisesPage() {
         aiSuggestion: result.aiSuggestion
       });
 
-      // Si el ejercicio es correcto, marcarlo como completado
+      // ===== SINCRONIZACIÓN HÍBRIDA =====
       if (result.isCorrect) {
-        completeExercise(selectedExercise.id);
+        // Guardar en LOCAL (instantáneo) Y en MONGODB (background)
+        await dualSave(
+          'exercise',
+          selectedExercise.id,
+          () => completeExercise(selectedExercise.id)
+        );
       }
 
     } catch (error) {
@@ -98,7 +92,6 @@ function ExercisesPage() {
     } finally {
       setIsCompiling(false);
     }
-
   };
 
   const handleGetTheory = async () => {
@@ -106,7 +99,6 @@ function ExercisesPage() {
 
     const exerciseId = selectedExercise.id;
 
-    // Si ya está visible, solo ocultar
     if (showTheory) {
       setShowTheory(false);
       return;
@@ -114,7 +106,6 @@ function ExercisesPage() {
 
     setShowTheory(true);
 
-    // 🔥 Si ya existe teoría para este ejercicio, NO llamar a IA
     if (theoryCache[exerciseId]) return;
 
     setLoadingTheory(true);
@@ -125,9 +116,7 @@ function ExercisesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           materia: 'fundamentos',
-          topics: selectedExercise.theoryTopics || [
-            selectedExercise.title
-          ]
+          topics: selectedExercise.theoryTopics || [selectedExercise.title]
         })
       });
 
@@ -148,7 +137,6 @@ function ExercisesPage() {
       setLoadingTheory(false);
     }
   };
-
 
   return (
     <div className="page-wrapper full-width">
@@ -252,7 +240,7 @@ function ExercisesPage() {
                     <span className="completed-badge-large">✓ Completado</span>
                   )}
                 </div>
-                {/* ===== Botón ver teoría ===== */}
+
                 <div className="theory-section">
                   <button
                     className="theory-button"
@@ -268,12 +256,12 @@ function ExercisesPage() {
                       <p>{theoryCache[selectedExercise.id]}</p>
                     </div>
                   )}
+                </div>
 
-                </div>                
                 <p className="exercise-description">{selectedExercise.description}</p>
                 
                 <div className="expected-output-box">
-                  <h4>Output Esperado cambio:</h4>
+                  <h4>Output Esperado:</h4>
                   <pre>{selectedExercise.expectedOutput}</pre>
                 </div>
 
@@ -296,7 +284,6 @@ function ExercisesPage() {
                 isCompiling={isCompiling}
               />
 
-              {/* ===== NUEVO: Input Box para scanf ===== */}
               {needsInput && (
                 <div className="user-input-section">
                   <div className="input-section-header">
@@ -312,13 +299,14 @@ function ExercisesPage() {
                     className="user-input-box"
                     value={userInputs}
                     onChange={(e) => setUserInputs(e.target.value)}
-                    placeholder="Ingresa los valores que tu programa pedirá (uno por línea)&#10;&#10;Ejemplo:&#10;Juan&#10;25&#10;1.75"
+                    placeholder="Escribe EXACTAMENTE lo que ingresarías en la consola&#10;&#10;Ejemplos:&#10;• Un valor por línea → Juan [Enter] 25 [Enter]&#10;• Varios en una línea → 0 0 [Enter]&#10;• Mixto → María [Enter] 30 1.75 [Enter]"
                     rows={6}
                   />
                   
                   <p className="input-help-text">
-                    💡 Cada línea será un valor que <code>scanf()</code> leerá en orden.
-                    Asegúrate de ingresar los valores en el orden correcto.
+                    💡 Escribe los inputs <strong>tal como los ingresarías en la consola</strong>. 
+                    Si <code>scanf("%d %d", &x, &y)</code> lee dos números en una línea, 
+                    escribe <code>5 10</code> (con espacio). Si lee líneas separadas, usa Enter entre valores.
                   </p>
                 </div>
               )}

@@ -1,18 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// backend/routes/projects.js - NUEVO
+const express = require('express');
+const router = express.Router();
+const User = require('../models/User');
+const { authenticate } = require('../middleware/auth');
 
-const DatabaseContext = createContext();
-
-// Hook personalizado para usar la base de datos
-export const useDatabase = () => {
-  const context = useContext(DatabaseContext);
-  if (!context) {
-    throw new Error('useDatabase debe usarse dentro de DatabaseProvider');
-  }
-  return context;
-};
-
-// Datos iniciales de proyectos
-const initialProjects = [
+// Proyectos base (hardcodeados) - los 3 iniciales
+const BASE_PROJECTS = [
   {
     id: 1,
     name: 'Calculadora Básica',
@@ -154,171 +147,140 @@ const initialProjects = [
   }
 ];
 
-export const DatabaseProvider = ({ children }) => {
-  // Estado para proyectos
-  const [projects, setProjects] = useState([]);
-  
-  // Estado para ejercicios completados (como Array, no Set)
-  const [completedExercises, setCompletedExercises] = useState([]);
-  
-  // Estado para proyectos desbloqueados
-  const [unlockedProjects, setUnlockedProjects] = useState([]);
-  
-  // Estado para el proyecto activo
-  const [activeProject, setActiveProject] = useState(null);
+/**
+ * GET /api/projects
+ * Obtener TODOS los proyectos (base + personalizados del usuario)
+ */
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
 
-  // Cargar datos del localStorage al iniciar
-  useEffect(() => {
-    // Cargar proyectos
-    const savedProjects = localStorage.getItem('c-practice-projects');
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    } else {
-      setProjects(initialProjects);
-      localStorage.setItem('c-practice-projects', JSON.stringify(initialProjects));
-    }
+    // Combinar proyectos base con personalizados del usuario
+    const allProjects = [
+      ...BASE_PROJECTS,
+      ...user.proyectosPersonalizados
+    ];
 
-    // Cargar ejercicios completados (Array)
-    const savedCompleted = localStorage.getItem('c-practice-completed');
-    if (savedCompleted) {
-      setCompletedExercises(JSON.parse(savedCompleted));
-    }
-
-    // Cargar proyectos desbloqueados
-    const savedUnlocked = localStorage.getItem('c-practice-unlocked');
-    if (savedUnlocked) {
-      setUnlockedProjects(JSON.parse(savedUnlocked));
-    }
-
-    // Cargar proyecto activo
-    const savedActive = localStorage.getItem('c-practice-active-project');
-    if (savedActive) {
-      setActiveProject(JSON.parse(savedActive));
-    }
-  }, []);
-
-  // ===== FUNCIONES DE EJERCICIOS =====
-  
-  // Marcar ejercicio como completado
-  const completeExercise = (exerciseId) => {
-    setCompletedExercises(prev => {
-      if (prev.includes(exerciseId)) return prev;
-      const updated = [...prev, exerciseId];
-      localStorage.setItem('c-practice-completed', JSON.stringify(updated));
-      return updated;
+    res.json({
+      success: true,
+      data: {
+        projects: allProjects,
+        total: allProjects.length,
+        personalizados: user.proyectosPersonalizados.length
+      }
     });
-  };
 
-  // Verificar si un ejercicio está completado
-  const isExerciseCompleted = (exerciseId) => {
-    return completedExercises.includes(exerciseId);
-  };
-
-  // Obtener lista de ejercicios completados
-  const getCompletedExercises = () => {
-    return completedExercises;
-  };
-
-  // ===== FUNCIONES DE PROYECTOS =====
-
-  // Desbloquear proyecto (sin duplicados)
-  const unlockProject = (projectId) => {
-    setUnlockedProjects(prev => {
-      if (prev.includes(projectId)) return prev;
-      const updated = [...prev, projectId];
-      localStorage.setItem('c-practice-unlocked', JSON.stringify(updated));
-      return updated;
+  } catch (error) {
+    console.error('Error al obtener proyectos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener proyectos.',
+      error: error.message
     });
-  };
+  }
+});
 
-  // Obtener lista de proyectos desbloqueados
-  const getUnlockedProjects = () => {
-    return unlockedProjects;
-  };
+/**
+ * POST /api/projects/custom
+ * Agregar proyecto personalizado creado con IA
+ */
+router.post('/custom', authenticate, async (req, res) => {
+  try {
+    const { projectData } = req.body;
 
-  // Obtener progreso de un proyecto (porcentaje de ejercicios completados)
-  const getProjectProgress = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project || !project.exercises) return 0;
+    if (!projectData || !projectData.name || !projectData.exercises) {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos del proyecto incompletos.'
+      });
+    }
 
-    const completed = project.exercises.filter(ex => 
-      completedExercises.includes(ex.id)
-    ).length;
+    const user = await User.findById(req.userId);
 
-    return Math.round((completed / project.exercises.length) * 100);
-  };
-
-  // Verificar si todos los ejercicios de un proyecto están completados
-  const isProjectCompleted = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project || !project.exercises) return false;
-
-    return project.exercises.every(ex => completedExercises.includes(ex.id));
-  };
-
-  // Establecer proyecto activo
-  const setActiveProjectById = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
-    setActiveProject(project);
-    localStorage.setItem('c-practice-active-project', JSON.stringify(project));
-  };
-
-  // Agregar un nuevo proyecto personalizado
-  const addCustomProject = (projectData) => {
-    const newProject = {
+    // Asignar ID único (timestamp + cantidad de proyectos personalizados)
+    const customProject = {
       ...projectData,
-      id: Date.now(), // ID único basado en timestamp
-      isCustom: true
+      id: Date.now() + user.proyectosPersonalizados.length,
+      isCustom: true,
+      fechaCreacion: Date.now()
     };
 
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
-    localStorage.setItem('c-practice-projects', JSON.stringify(updatedProjects));
-  };
+    await user.agregarProyectoPersonalizado(customProject);
 
-  // ===== FUNCIONES DE SINCRONIZACIÓN =====
+    res.status(201).json({
+      success: true,
+      message: 'Proyecto personalizado agregado exitosamente.',
+      data: {
+        project: customProject
+      }
+    });
 
-  // Limpiar todo el progreso (para sincronización)
-  const clearAllProgress = () => {
-    setCompletedExercises([]);
-    setUnlockedProjects([]);
-    localStorage.setItem('c-practice-completed', JSON.stringify([]));
-    localStorage.setItem('c-practice-unlocked', JSON.stringify([]));
-  };
+  } catch (error) {
+    console.error('Error al agregar proyecto personalizado:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al agregar proyecto personalizado.',
+      error: error.message
+    });
+  }
+});
 
-  // Resetear progreso (útil para desarrollo)
-  const resetProgress = () => {
-    clearAllProgress();
-  };
+/**
+ * GET /api/projects/custom
+ * Obtener solo proyectos personalizados del usuario
+ */
+router.get('/custom', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
 
-  const value = {
-    // Datos
-    projects,
-    completedExercises,
-    unlockedProjects,
-    activeProject,
-    
-    // Funciones de ejercicios
-    completeExercise,
-    isExerciseCompleted,
-    getCompletedExercises,
-    
-    // Funciones de proyectos
-    unlockProject,
-    getUnlockedProjects,
-    getProjectProgress,
-    isProjectCompleted,
-    setActiveProjectById,
-    addCustomProject,
-    
-    // Funciones de sincronización
-    clearAllProgress,
-    resetProgress,
-  };
+    res.json({
+      success: true,
+      data: {
+        projects: user.proyectosPersonalizados,
+        total: user.proyectosPersonalizados.length
+      }
+    });
 
-  return (
-    <DatabaseContext.Provider value={value}>
-      {children}
-    </DatabaseContext.Provider>
-  );
-};
+  } catch (error) {
+    console.error('Error al obtener proyectos personalizados:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener proyectos personalizados.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/projects/custom/:id
+ * Eliminar proyecto personalizado
+ */
+router.delete('/custom/:id', authenticate, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+
+    const user = await User.findById(req.userId);
+
+    // Filtrar el proyecto a eliminar
+    user.proyectosPersonalizados = user.proyectosPersonalizados.filter(
+      p => p.id !== projectId
+    );
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Proyecto personalizado eliminado exitosamente.'
+    });
+
+  } catch (error) {
+    console.error('Error al eliminar proyecto personalizado:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar proyecto personalizado.',
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;

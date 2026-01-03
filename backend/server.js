@@ -1,16 +1,44 @@
-// server.js - Servidor Express con integración de IA
+// server.js - Servidor Express con integración de IA y MongoDB
 require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
+const { connectDB } = require('./config/database');
 const cCompiler = require('./compiler/cCompiler');
 const aiService = require('./services/aiService');
+
+// Importar rutas
+const authRoutes = require('./routes/auth');
+const progressRoutes = require('./routes/progress');
+const projectsRoutes = require('./routes/projects');  // ← NUEVO
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+// ===================================================================
+// MIDDLEWARES
+// ===================================================================
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Log de peticiones
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// ===================================================================
+// RUTAS DE AUTENTICACIÓN, PROGRESO Y PROYECTOS
+// ===================================================================
+
+app.use('/api/auth', authRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/projects', projectsRoutes);  // ← NUEVO
 
 // ========================================================================
 // RUTAS DE LA API
@@ -30,7 +58,7 @@ app.get('/api/health', (req, res) => {
 /**
  * Endpoint principal de compilación con análisis de IA
  * POST /api/compile
- * Body: { code, expectedOutput, exerciseId, materia }
+ * Body: { code, expectedOutput, exerciseId, materia, userInputs }
  */
 app.post('/api/compile', async (req, res) => {
   const { code, expectedOutput, exerciseId, materia = 'fundamentos', userInputs = '' } = req.body;
@@ -253,6 +281,15 @@ app.use((err, req, res, next) => {
  */
 async function startServer() {
   try {
+    // ===== NUEVO: Conectar a MongoDB =====
+    if (process.env.MONGODB_URI) {
+      await connectDB();
+      console.log('✅ MongoDB conectado');
+    } else {
+      console.warn('⚠️  ADVERTENCIA: MONGODB_URI no está configurada');
+      console.warn('   Las funciones de autenticación no estarán disponibles\n');
+    }
+
     // Verificar que existe la API key de Gemini
     if (!process.env.GEMINI_API_KEY) {
       console.warn('⚠️  ADVERTENCIA: GEMINI_API_KEY no está configurada en .env');
@@ -265,7 +302,7 @@ async function startServer() {
     // Iniciar servidor Express
     app.listen(PORT, () => {
       console.log('╔════════════════════════════════════════════════════════╗');
-      console.log('║         🚀 C PRACTICE LAB - Backend Server           ║');
+      console.log('║         🚀 ESCOMENTOR - Backend Server               ║');
       console.log('╚════════════════════════════════════════════════════════╝');
       console.log(`\n📡 Servidor corriendo en http://localhost:${PORT}`);
       console.log(`⚠️  Asegúrate de tener GCC instalado en tu sistema\n`);
@@ -274,12 +311,33 @@ async function startServer() {
       console.log(`  - POST /api/compile`);
       console.log(`  - POST /api/generate-project`);
       console.log(`  - GET  /api/materias`);
-      console.log(`  - GET  /api/temas/:materia\n`);
+      console.log(`  - GET  /api/temas/:materia`);
+      console.log(`  - POST /api/theory`);
+      console.log(`\n  ===== Autenticación =====`);
+      console.log(`  - POST /api/auth/register`);
+      console.log(`  - POST /api/auth/login`);
+      console.log(`  - GET  /api/auth/me`);
+      console.log(`\n  ===== Progreso =====`);
+      console.log(`  - GET  /api/progress/exercises`);
+      console.log(`  - POST /api/progress/exercises/:id/complete`);
+      console.log(`  - GET  /api/progress/projects`);
+      console.log(`  - POST /api/progress/projects/:id/unlock`);
+      console.log(`\n  ===== Proyectos ===== ← NUEVO`);
+      console.log(`  - GET  /api/projects`);
+      console.log(`  - POST /api/projects/custom`);
+      console.log(`  - GET  /api/projects/custom`);
+      console.log(`  - DELETE /api/projects/custom/:id\n`);
       
       if (process.env.GEMINI_API_KEY) {
         console.log('✅ Integración con Google Gemini AI activa');
       } else {
         console.log('⚠️  Integración con IA deshabilitada (falta GEMINI_API_KEY)');
+      }
+
+      if (process.env.MONGODB_URI) {
+        console.log('✅ MongoDB conectado - Sistema de usuarios activo');
+      } else {
+        console.log('⚠️  MongoDB no configurado - Sistema de usuarios deshabilitado');
       }
       console.log('');
     });
