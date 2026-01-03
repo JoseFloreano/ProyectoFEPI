@@ -9,7 +9,7 @@ const aiService = require('./services/aiService');
 // Importar rutas
 const authRoutes = require('./routes/auth');
 const progressRoutes = require('./routes/progress');
-const projectsRoutes = require('./routes/projects');  // ← NUEVO
+const projectsRoutes = require('./routes/projects');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
