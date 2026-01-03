@@ -10,7 +10,6 @@ import './App.css';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
-
   // Renderizar la página actual
   const renderPage = () => {
     switch (currentPage) {

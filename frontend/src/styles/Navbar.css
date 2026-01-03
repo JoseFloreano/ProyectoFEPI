@@ -133,6 +133,12 @@
   .logo-text {
     display: none;
   }
+
+  .user-info-navbar img {
+    width: 34px;
+    height: 34px;
+  }
+
 }
 
 @media (max-width: 768px) {
@@ -148,4 +154,42 @@
   .nav-item {
     padding: 0.5rem;
   }
+  .user-info-navbar {
+    padding: 4px;
+  }
+
+  .user-info-navbar img {
+    width: 30px;
+    height: 30px;
+    border-width: 1.5px;
+  }
+
+  .user-info-navbar img:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+}
+
+.user-info-navbar {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.user-info-navbar img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  transition: all 0.25s ease;
+}
+
+/* Hover elegante */
+.user-info-navbar img:hover {
+  transform: scale(1.05);
+  border-color: var(--gradient-primary); /* azul bonito */
+  box-shadow: 0 0 0 4px var(--bg-elevated);
 }

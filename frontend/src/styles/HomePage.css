@@ -64,7 +64,8 @@
 }
 
 .btn-primary-large,
-.btn-secondary-large {
+.btn-secondary-large,
+.btn-logout{
   padding: 1rem 2rem;
   border-radius: 12px;
   font-size: 1.1rem;
@@ -92,10 +93,36 @@
   color: var(--text-primary);
 }
 
+
 .btn-secondary-large:hover {
   background: var(--bg-tertiary);
   border-color: var(--primary);
 }
+
+.btn-logout{
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--error);
+  color: var(--error)
+
+}
+
+/* Hover */
+.btn-logout:hover{
+  background: var(--bg-tertiary);
+  border:2px solid var(--warning);
+  color: var(--warning);
+  transform: translateY(-2px);
+}
+
+
+
+/* Hover coherente con tus botones */
+.google-login-wrapper:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+}
+
+
 
 .btn-icon {
   font-size: 1.25rem;
@@ -391,8 +418,10 @@
   }
 
   .btn-primary-large,
-  .btn-secondary-large {
+  .btn-secondary-large,
+  .btn-logout {
     width: 100%;
     justify-content: center;
   }
+
 }

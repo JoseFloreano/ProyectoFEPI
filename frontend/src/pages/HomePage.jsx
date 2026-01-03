@@ -1,7 +1,14 @@
 import React from 'react';
 import '../styles/HomePage.css';
 
+import GoogleLoginButton from '../components/GoogleLoginButton';
+import { useAuth } from '../context/AuthContext';
+
+
 function HomePage({ onNavigate }) {
+  const {user, login, logout} = useAuth();
+
+
   return (
   <div className="page-wrapper">
     <div className="home-page">
@@ -23,23 +30,55 @@ function HomePage({ onNavigate }) {
           </p>
 
           <div className="hero-actions">
-            <button 
-              className="btn-primary-large"
-              onClick={() => onNavigate('exercises')}
-            >
-              <span>Comenzar a Practicar</span>
-              <span className="btn-icon">→</span>
-            </button>
-            
-            <button 
-              className="btn-secondary-large"
-              onClick={() => onNavigate('chatbot')}
-            >
-              <span className="btn-icon">💬</span>
-              <span>Crear Proyecto con IA</span>
-            </button>
+            {!user ? (
+              <>
+                {/* Google Login Button */}
+                <div>
+                  <GoogleLoginButton
+                  />
+                </div>
+              </>
+            ) : (
+             <>
+              
+              {/* Usuario ya logueado */}
+              <div className="user-info">
+                <img 
+                  src={user.picture}
+                  alt="avatar"
+                  style={{ width: '40px', borderRadius: '50%', marginRight: '10px' }}
+                />
+                <span className="user-name">Hola, {user.name}</span>
+              </div>
+
+              <button 
+                className="btn-primary-large"
+                onClick={() => onNavigate('exercises')}
+              >
+                <span>Comenzar a Practicar</span>
+                <span className="btn-icon">→</span>
+              </button>
+              
+              <button 
+                className="btn-secondary-large"
+                onClick={() => onNavigate('chatbot')}
+              >
+                <span className="btn-icon">💬</span>
+                <span>Crear Proyecto con IA</span>
+              </button>
+
+
+              <button
+                className = "btn-logout"
+                onClick={logout}
+              >
+                🚪Cerrar Sesión
+              </button>
+             </>
+            )}
           </div>
         </div>
+        
 
         <div className="hero-visual">
           <div className="code-window">

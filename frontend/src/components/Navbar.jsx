@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import SettingsModal from './SettingsModal';
 import '../styles/Navbar.css';
+import { useAuth } from '../context/AuthContext';
 
 function Navbar({ currentPage, onNavigate }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  const { user } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Inicio', icon: '🏠' },
@@ -34,6 +37,12 @@ function Navbar({ currentPage, onNavigate }) {
           ))}
         </div>
 
+        {user && (
+          <div className="user-info-navbar">
+            <img src={user.picture} alt="User avatar"/>
+          </div>
+        )}
+
         <div className="navbar-actions">
           <button 
             className="btn-secondary"
@@ -43,7 +52,13 @@ function Navbar({ currentPage, onNavigate }) {
             <span>⚙️</span>
           </button>
         </div>
+
+        
       </nav>
+      
+      
+      
+
 
       {/* Modal de Configuración */}
       <SettingsModal 
