@@ -1,14 +1,140 @@
-// services/aiService.js - Servicio de integración con Google Gemini AI
+// services/aiService.js - Servicio de IA con fallback Gemini → Groq
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const fs = require('fs').promises;
 const path = require('path');
 const csv = require('csv-parser');
 const { createReadStream } = require('fs');
 
-// Inicializar Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// ===================================================================
+// CONFIGURACIÓN DE IAs
+// ===================================================================
 
-// Rutas de los archivos CSV de temarios
+// Inicializar Gemini AI
+const genAI = process.env.GEMINI_API_KEY 
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+// Inicializar Groq AI (Backup)
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
+
+// Configuración de modelos
+const AI_CONFIG = {
+  gemini: {
+    name: 'Gemini',
+    model: 'gemini-2.5-flash',
+    available: !!genAI,
+    priority: 1
+  },
+  groq: {
+    name: 'Groq',
+    model: 'llama-3.3-70b-versatile', // Modelo rápido y potente
+    available: !!groq,
+    priority: 2
+  }
+};
+
+// Log de IAs disponibles
+if (AI_CONFIG.gemini.available) {
+  console.log('✅ Gemini AI disponible (primario)');
+} else {
+  console.warn('⚠️  Gemini API key no configurada');
+}
+
+if (AI_CONFIG.groq.available) {
+  console.log('✅ Groq AI disponible (backup)');
+} else {
+  console.warn('⚠️  Groq API key no configurada');
+}
+
+// ===================================================================
+// FUNCIÓN PRINCIPAL DE GENERACIÓN CON FALLBACK
+// ===================================================================
+
+/**
+ * Genera contenido con IA usando sistema de fallback
+ * @param {string} prompt - Prompt para la IA
+ * @param {Object} options - Opciones adicionales
+ * @returns {Promise<string>} - Respuesta de la IA
+ */
+async function generateWithAI(prompt, options = {}) {
+  const { maxRetries = 1, temperature = 0.7 } = options;
+
+  // Intentar con Gemini primero
+  if (AI_CONFIG.gemini.available) {
+    try {
+      console.log('🤖 Usando Gemini AI...');
+      const response = await generateWithGemini(prompt, { temperature });
+      console.log('✅ Respuesta generada con Gemini');
+      return response;
+    } catch (error) {
+      console.warn('⚠️  Gemini falló:', error.message);
+      console.log('🔄 Intentando con Groq...');
+    }
+  }
+
+  // Fallback a Groq
+  if (AI_CONFIG.groq.available) {
+    try {
+      console.log('🤖 Usando Groq AI (backup)...');
+      const response = await generateWithGroq(prompt, { temperature });
+      console.log('✅ Respuesta generada con Groq');
+      return response;
+    } catch (error) {
+      console.error('❌ Groq también falló:', error.message);
+      throw new Error('Todos los servicios de IA están temporalmente no disponibles');
+    }
+  }
+
+  throw new Error('No hay servicios de IA configurados. Verifica tus API keys.');
+}
+
+/**
+ * Genera contenido con Gemini
+ */
+async function generateWithGemini(prompt, options = {}) {
+  const model = genAI.getGenerativeModel({ 
+    model: AI_CONFIG.gemini.model,
+    generationConfig: {
+      temperature: options.temperature || 0.7,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 8192,
+    }
+  });
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
+
+/**
+ * Genera contenido con Groq
+ */
+async function generateWithGroq(prompt, options = {}) {
+  const chatCompletion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    model: AI_CONFIG.groq.model,
+    temperature: options.temperature || 0.7,
+    max_tokens: 8192,
+    top_p: 0.95,
+    stream: false
+  });
+
+  return chatCompletion.choices[0]?.message?.content || '';
+}
+
+// ===================================================================
+// FUNCIONES DE TEMARIOS (sin cambios)
+// ===================================================================
+
 const TEMARIOS_DIR = path.join(__dirname, '..', 'temarios');
 const TEMARIOS = {
   fundamentos: path.join(TEMARIOS_DIR, 'fundamentos-programacion.csv'),
@@ -16,11 +142,6 @@ const TEMARIOS = {
   analisis: path.join(TEMARIOS_DIR, 'analisis-algoritmos.csv')
 };
 
-/**
- * Lee un archivo CSV y retorna los temas como array
- * @param {string} filePath - Ruta del archivo CSV
- * @returns {Promise<Array<string>>} - Array de temas
- */
 async function leerTemasCSV(filePath) {
   return new Promise((resolve, reject) => {
     const temas = [];
@@ -28,7 +149,6 @@ async function leerTemasCSV(filePath) {
     createReadStream(filePath)
       .pipe(csv())
       .on('data', (row) => {
-        // Asumiendo que la columna se llama 'Tema' o 'tema'
         const tema = row.Tema || row.tema || row.TEMA || Object.values(row)[0];
         if (tema && tema.trim()) {
           temas.push(tema.trim());
@@ -43,19 +163,12 @@ async function leerTemasCSV(filePath) {
   });
 }
 
-/**
- * Obtiene los temas disponibles según la materia seleccionada
- * Las materias son seriadas: análisis incluye todos, estructuras incluye fundamentos
- * @param {string} materia - 'fundamentos', 'estructuras', o 'analisis'
- * @returns {Promise<Array<string>>} - Array de temas disponibles
- */
 async function obtenerTemasDisponibles(materia) {
   try {
     let temas = [];
 
     switch (materia) {
       case 'analisis':
-        // Análisis incluye todos los temas (seriado completo)
         const temasAnalisis = await leerTemasCSV(TEMARIOS.analisis);
         const temasEstructuras2 = await leerTemasCSV(TEMARIOS.estructuras);
         const temasFundamentos2 = await leerTemasCSV(TEMARIOS.fundamentos);
@@ -63,7 +176,6 @@ async function obtenerTemasDisponibles(materia) {
         break;
 
       case 'estructuras':
-        // Estructuras incluye fundamentos + estructuras
         const temasEstructuras = await leerTemasCSV(TEMARIOS.estructuras);
         const temasFundamentos = await leerTemasCSV(TEMARIOS.fundamentos);
         temas = [...temasFundamentos, ...temasEstructuras];
@@ -71,7 +183,6 @@ async function obtenerTemasDisponibles(materia) {
 
       case 'fundamentos':
       default:
-        // Solo fundamentos
         temas = await leerTemasCSV(TEMARIOS.fundamentos);
         break;
     }
@@ -83,155 +194,6 @@ async function obtenerTemasDisponibles(materia) {
   }
 }
 
-/**
- * Genera un proyecto personalizado usando Gemini AI
- * @param {Object} params - Parámetros
- * @param {string} params.userRequest - Solicitud del usuario
- * @param {string} params.materia - Materia seleccionada
- * @param {Array} params.conversationHistory - Historial de conversación
- * @returns {Promise<Object>} - Proyecto generado
- */
-async function generarProyectoConIA({ userRequest, materia, conversationHistory = [] }) {
-  try {
-    // Obtener temas disponibles según la materia
-    const temasDisponibles = await obtenerTemasDisponibles(materia);
-
-    // Construir el prompt
-    const prompt = `
-Eres un experto profesor de programación en C. Tu tarea es crear un proyecto educativo completo basado en la solicitud del estudiante.
-
-MATERIA SELECCIONADA: ${getNombreMateria(materia)}
-
-TEMAS DISPONIBLES PARA ESTA MATERIA:
-${temasDisponibles.map((tema, idx) => `${idx + 1}. ${tema}`).join('\n')}
-
-IMPORTANTE: 
-- Solo puedes usar temas de la lista anterior
-- Los ejercicios deben estar dentro del alcance de "${getNombreMateria(materia)}"
-- Si el estudiante pide algo fuera del temario, sugiere la alternativa más cercana
-
-SOLICITUD DEL ESTUDIANTE: ${userRequest}
-
-FORMATO DE RESPUESTA (DEBES RESPONDER SOLO CON UN JSON VÁLIDO):
-{
-  "name": "Nombre descriptivo del proyecto",
-  "description": "Descripción clara del proyecto (1-2 oraciones)",
-  "difficulty": "Fácil|Media|Difícil",
-  "icon": "emoji apropiado (un solo emoji)",
-  "color": "código hex de color apropiado",
-  "temasUsados": ["tema1", "tema2"],
-  "exercises": [
-    {
-      "title": "Título del ejercicio 1",
-      "description": "Descripción clara y específica del ejercicio",
-      "expectedOutput": "Output exacto esperado (incluye \\n para saltos de línea)",
-      "starterCode": "Código de inicio en C con comentarios guía",
-      "hints": ["Pista 1", "Pista 2", "Pista 3"]
-    },
-    // Incluir 3-5 ejercicios progresivos
-  ],
-  "finalProject": {
-    "title": "Título del proyecto final",
-    "description": "Descripción del proyecto integrador",
-    "starterCode": "Código base para el proyecto final"
-  }
-}
-
-REGLAS IMPORTANTES:
-1. Los ejercicios deben ser progresivos (de fácil a complejo)
-2. El expectedOutput debe ser EXACTO (incluye saltos de línea \\n)
-3. El starterCode debe incluir #include necesarios y main()
-4. Los hints deben guiar sin dar la solución completa
-5. El proyecto final debe integrar lo aprendido en los ejercicios
-6. RESPONDE SOLO CON EL JSON, SIN TEXTO ADICIONAL
-7. Asegúrate de que el JSON sea válido y parseable
-`;
-
-    // Llamar a Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    // Limpiar y parsear la respuesta
-    let jsonText = text.trim();
-
-    // Remover markdown code blocks si existen
-    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-
-    // Intentar parsear el JSON
-    const projectData = JSON.parse(jsonText);
-
-    // Agregar IDs y validar estructura
-    const validatedProject = validarYCompletarProyecto(projectData, materia);
-
-    return {
-      success: true,
-      project: validatedProject
-    };
-
-  } catch (error) {
-    console.error('Error al generar proyecto con IA:', error);
-
-    return {
-      success: false,
-      error: error.message,
-      suggestion: 'Intenta reformular tu solicitud o sé más específico sobre qué quieres aprender.'
-    };
-  }
-}
-
-/**
- * Valida y completa los datos del proyecto generado
- * @param {Object} projectData - Datos del proyecto
- * @param {string} materia - Materia seleccionada
- * @returns {Object} - Proyecto validado
- */
-function validarYCompletarProyecto(projectData, materia) {
-  const timestamp = Date.now();
-
-  // Validar campos requeridos
-  if (!projectData.name || !projectData.exercises || !projectData.finalProject) {
-    throw new Error('El proyecto generado no tiene la estructura correcta');
-  }
-
-  // Completar con valores predeterminados si faltan
-  const proyecto = {
-    id: timestamp,
-    name: projectData.name,
-    description: projectData.description || 'Proyecto generado con IA',
-    difficulty: projectData.difficulty || 'Media',
-    icon: projectData.icon || '🎯',
-    color: projectData.color || '#6366f1',
-    materia: materia,
-    temasUsados: projectData.temasUsados || [],
-    isCustom: true,
-    createdAt: new Date().toISOString(),
-    exercises: [],
-    finalProject: projectData.finalProject
-  };
-
-  // Procesar ejercicios
-  projectData.exercises.forEach((exercise, index) => {
-    proyecto.exercises.push({
-      id: timestamp + index + 1,
-      projectId: timestamp,
-      title: exercise.title,
-      description: exercise.description,
-      expectedOutput: exercise.expectedOutput,
-      starterCode: exercise.starterCode,
-      hints: exercise.hints || []
-    });
-  });
-
-  return proyecto;
-}
-
-/**
- * Obtiene el nombre completo de la materia
- * @param {string} materia - Código de la materia
- * @returns {string} - Nombre completo
- */
 function getNombreMateria(materia) {
   const nombres = {
     fundamentos: 'Fundamentos de Programación',
@@ -241,10 +203,6 @@ function getNombreMateria(materia) {
   return nombres[materia] || materia;
 }
 
-/**
- * Obtiene información sobre las materias disponibles
- * @returns {Array<Object>} - Array de materias con metadata
- */
 function obtenerMateriasDisponibles() {
   return [
     {
@@ -279,13 +237,94 @@ function obtenerMateriasDisponibles() {
   ];
 }
 
+// ===================================================================
+// FUNCIONES DE GENERACIÓN CON IA (ACTUALIZADAS CON FALLBACK)
+// ===================================================================
+
 /**
- * Analiza un error de compilación usando Gemini
- * @param {Object} params - Parámetros
- * @param {string} params.code - Código fuente
- * @param {string} params.error - Mensaje de error
- * @param {string} params.materia - Materia del ejercicio
- * @returns {Promise<string>} - Sugerencia de la IA
+ * Genera un proyecto personalizado usando IA con fallback
+ */
+async function generarProyectoConIA({ userRequest, materia, conversationHistory = [] }) {
+  try {
+    const temasDisponibles = await obtenerTemasDisponibles(materia);
+
+    const prompt = `
+Eres un experto profesor de programación en C. Tu tarea es crear un proyecto educativo completo basado en la solicitud del estudiante.
+
+MATERIA SELECCIONADA: ${getNombreMateria(materia)}
+
+TEMAS DISPONIBLES PARA ESTA MATERIA:
+${temasDisponibles.map((tema, idx) => `${idx + 1}. ${tema}`).join('\n')}
+
+IMPORTANTE: 
+- Solo puedes usar temas de la lista anterior
+- Los ejercicios deben estar dentro del alcance de "${getNombreMateria(materia)}"
+- Si el estudiante pide algo fuera del temario, sugiere la alternativa más cercana
+
+SOLICITUD DEL ESTUDIANTE: ${userRequest}
+
+FORMATO DE RESPUESTA (DEBES RESPONDER SOLO CON UN JSON VÁLIDO):
+{
+  "name": "Nombre descriptivo del proyecto",
+  "description": "Descripción clara del proyecto (1-2 oraciones)",
+  "difficulty": "Fácil|Media|Difícil",
+  "icon": "emoji apropiado (un solo emoji)",
+  "color": "código hex de color apropiado",
+  "temasUsados": ["tema1", "tema2"],
+  "exercises": [
+    {
+      "title": "Título del ejercicio 1",
+      "description": "Descripción clara y específica del ejercicio",
+      "expectedOutput": "Output exacto esperado (incluye \\n para saltos de línea)",
+      "starterCode": "Código de inicio en C con comentarios guía",
+      "hints": ["Pista 1", "Pista 2", "Pista 3"]
+    }
+  ],
+  "finalProject": {
+    "title": "Título del proyecto final",
+    "description": "Descripción del proyecto integrador",
+    "starterCode": "Código base para el proyecto final"
+  }
+}
+
+REGLAS IMPORTANTES:
+1. Los ejercicios deben ser progresivos (de fácil a complejo)
+2. El expectedOutput debe ser EXACTO (incluye saltos de línea \\n)
+3. El starterCode debe incluir #include necesarios y main()
+4. Los hints deben guiar sin dar la solución completa
+5. El proyecto final debe integrar lo aprendido en los ejercicios
+6. RESPONDE SOLO CON EL JSON, SIN TEXTO ADICIONAL
+7. Asegúrate de que el JSON sea válido y parseable
+`;
+
+    // ===== USAR SISTEMA DE FALLBACK =====
+    const text = await generateWithAI(prompt, { temperature: 0.7 });
+
+    // Limpiar y parsear la respuesta
+    let jsonText = text.trim();
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+    const projectData = JSON.parse(jsonText);
+    const validatedProject = validarYCompletarProyecto(projectData, materia);
+
+    return {
+      success: true,
+      project: validatedProject
+    };
+
+  } catch (error) {
+    console.error('Error al generar proyecto con IA:', error);
+
+    return {
+      success: false,
+      error: error.message,
+      suggestion: 'Intenta reformular tu solicitud o sé más específico sobre qué quieres aprender.'
+    };
+  }
+}
+
+/**
+ * Analiza un error de compilación usando IA con fallback
  */
 async function analizarErrorCompilacion({ code, error, materia }) {
   try {
@@ -303,17 +342,16 @@ ERROR:
 ${error}
 
 Proporciona una explicación clara, sencilla y educativa que incluya:
-Cómo corregirlo (sin dar la solución completa)
-Un consejo para evitar este error en el futuro
+- Qué significa el error
+- Cómo corregirlo (sin dar la solución completa)
+- Un consejo para evitar este error en el futuro
 
 Sé breve (máximo 50 palabras), amable y educativo. Usa emojis ocasionalmente.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    // ===== USAR SISTEMA DE FALLBACK =====
+    return await generateWithAI(prompt, { temperature: 0.7 });
 
-    return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);
     return 'No se pudo obtener sugerencia de la IA en este momento.';
@@ -321,7 +359,7 @@ Sé breve (máximo 50 palabras), amable y educativo. Usa emojis ocasionalmente.
 }
 
 /**
- * Analiza un error de ejecución usando Gemini
+ * Analiza un error de ejecución usando IA con fallback
  */
 async function analizarErrorEjecucion({ code, error, materia }) {
   try {
@@ -339,17 +377,16 @@ ERROR:
 ${error}
 
 Explica brevemente:
-Posibles causas en el código
-Una pista para corregirlo
+- Qué causó el error
+- Posibles causas en el código
+- Una pista para corregirlo
 
 Máximo 50 palabras, amable y con emojis ocasionales.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    // ===== USAR SISTEMA DE FALLBACK =====
+    return await generateWithAI(prompt, { temperature: 0.7 });
 
-    return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);
     return 'No se pudo obtener sugerencia de la IA en este momento.';
@@ -386,11 +423,9 @@ Analiza brevemente:
 NO des la solución completa. Máximo 50 palabras con emojis ocasionales.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    // ===== USAR SISTEMA DE FALLBACK =====
+    return await generateWithAI(prompt, { temperature: 0.7 });
 
-    return response.text();
   } catch (error) {
     console.error('Error al analizar con IA:', error);
     return 'No se pudo obtener sugerencia de la IA en este momento.';
@@ -399,10 +434,6 @@ NO des la solución completa. Máximo 50 palabras con emojis ocasionales.
 
 /**
  * Genera teoría educativa a partir de topics específicos
- * @param {Object} params
- * @param {Array<string>} params.topics - Temas del ejercicio
- * @param {string} params.materia - Materia del curso
- * @returns {Promise<string>}
  */
 async function generarTeoriaPorTemas({ topics, materia }) {
   try {
@@ -423,11 +454,8 @@ REGLAS:
 - Todo debe ser texto plano
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-
-    return response.text();
+    // ===== USAR SISTEMA DE FALLBACK =====
+    return await generateWithAI(prompt, { temperature: 0.7 });
 
   } catch (error) {
     console.error('Error al generar teoría:', error);
@@ -435,6 +463,49 @@ REGLAS:
   }
 }
 
+/**
+ * Valida y completa los datos del proyecto generado
+ */
+function validarYCompletarProyecto(projectData, materia) {
+  const timestamp = Date.now();
+
+  if (!projectData.name || !projectData.exercises || !projectData.finalProject) {
+    throw new Error('El proyecto generado no tiene la estructura correcta');
+  }
+
+  const proyecto = {
+    id: timestamp,
+    name: projectData.name,
+    description: projectData.description || 'Proyecto generado con IA',
+    difficulty: projectData.difficulty || 'Media',
+    icon: projectData.icon || '🎯',
+    color: projectData.color || '#6366f1',
+    materia: materia,
+    temasUsados: projectData.temasUsados || [],
+    isCustom: true,
+    createdAt: new Date().toISOString(),
+    exercises: [],
+    finalProject: projectData.finalProject
+  };
+
+  projectData.exercises.forEach((exercise, index) => {
+    proyecto.exercises.push({
+      id: timestamp + index + 1,
+      projectId: timestamp,
+      title: exercise.title,
+      description: exercise.description,
+      expectedOutput: exercise.expectedOutput,
+      starterCode: exercise.starterCode,
+      hints: exercise.hints || []
+    });
+  });
+
+  return proyecto;
+}
+
+// ===================================================================
+// EXPORTS
+// ===================================================================
 
 module.exports = {
   generarProyectoConIA,
@@ -444,5 +515,7 @@ module.exports = {
   analizarErrorEjecucion,
   analizarOutputIncorrecto,
   generarTeoriaPorTemas,
-  getNombreMateria
+  getNombreMateria,
+  // Exportar configuración para diagnóstico
+  AI_CONFIG
 };
