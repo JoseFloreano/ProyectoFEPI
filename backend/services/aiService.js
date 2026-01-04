@@ -522,8 +522,7 @@ REGLAS:
 
     // ===== USAR SISTEMA DE FALLBACK =====
     return await generateWithAI(prompt, {
-      temperature: 0.7,
-      preferredApi
+      temperature: 0.7
     });
 
   } catch (error) {

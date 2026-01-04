@@ -1,6 +1,7 @@
 // frontend/src/services/syncService.js - ACTUALIZADO
 import { authAPI, progressAPI } from './apiService';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 /**
  * Sincronizar progreso Y proyectos desde MongoDB a DatabaseContext local
  */
@@ -12,7 +13,7 @@ export const syncFromMongo = async (databaseContext) => {
     const mongoProgress = await progressAPI.getFullProgress();
 
     // Obtener proyectos personalizados
-    const projectsResponse = await fetch('http://localhost:3001/api/projects', {
+    const projectsResponse = await fetch(`${API_URL}/api/projects`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }

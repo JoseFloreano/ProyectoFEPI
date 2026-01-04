@@ -51,6 +51,31 @@ function ExercisesPage() {
     setUserCode(code);
   };
 
+  // Helper para formatear el JSON de la IA a Markdown
+  const formatAiSuggestion = (suggestion) => {
+    if (!suggestion) return null;
+    try {
+      // Intentar parsear como JSON
+      const json = JSON.parse(suggestion);
+
+      // Si tiene las claves específicas que esperamos
+      if (json['1_diferencias_outputs'] || json['2_errores_logicos_formato']) {
+        return `
+### 🔍 Análisis de Error
+
+* **❌ Diferencias:** ${json['1_diferencias_outputs'] || 'N/A'}
+* **🐛 Errores Lógicos:** ${json['2_errores_logicos_formato'] || 'N/A'}
+* **💡 Pistas:** ${json['3_pistas_especificas'] || 'N/A'}
+* **🕵️‍♂️ Consejo:** ${json['4_consejo_verificar_output'] || 'N/A'}
+        `.trim();
+      }
+      return suggestion; // Si es JSON pero no el esperado, devolver tal cual (o formatear genérico)
+    } catch (e) {
+      // No es JSON, devolver como texto plano/markdown original
+      return suggestion;
+    }
+  };
+
   // ===== COMPILAR CON INTEGRACIÓN HÍBRIDA =====
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -71,7 +96,7 @@ function ExercisesPage() {
         expectedOutput: selectedExercise.expectedOutput,
         isCorrect: result.isCorrect,
         error: result.error,
-        aiSuggestion: result.aiSuggestion
+        aiSuggestion: formatAiSuggestion(result.aiSuggestion)
       });
 
       // ===== SINCRONIZACIÓN HÍBRIDA =====
