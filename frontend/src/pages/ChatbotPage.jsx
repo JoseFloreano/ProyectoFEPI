@@ -40,7 +40,7 @@ const MATERIAS = [
 
 function ChatbotPage() {
   const { addCustomProject } = useDatabase();
-  
+
   const [selectedMateria, setSelectedMateria] = useState(null);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
@@ -59,14 +59,14 @@ function ChatbotPage() {
   // Manejar selección de materia
   const handleMateriaSelect = (materia) => {
     setSelectedMateria(materia);
-    
+
     const materiaInfo = MATERIAS.find(m => m.id === materia);
-    
+
     const confirmMessage = {
       role: 'assistant',
       content: `Perfecto! Has seleccionado **${materiaInfo.nombre}** ${materiaInfo.icon}\n\n${materiaInfo.descripcion}\n\n${materiaInfo.incluye ? `✨ Esta materia incluye: ${materiaInfo.incluye.join(', ')}\n\n` : ''}Ahora dime: ¿qué proyecto te gustaría crear?\n\nEjemplos:\n• "Quiero practicar ${materiaInfo.temasClave[0]}"\n• "Crea ejercicios de ${materiaInfo.temasClave[1]}"\n• "Proyecto sobre ${materiaInfo.temasClave[2]}"`
     };
-    
+
     setMessages(prev => [...prev, confirmMessage]);
   };
 
@@ -111,9 +111,12 @@ function ChatbotPage() {
 
         setMessages(prev => [...prev, successMessage]);
       } else {
+        const preferredApi = localStorage.getItem('preferredApi') || 'gemini';
+        const apiName = preferredApi === 'gemini' ? 'Gemini' : 'Groq';
+
         const errorMessage = {
           role: 'assistant',
-          content: `❌ No pude generar el proyecto: ${data.error || 'Error desconocido'}\n\n${data.suggestion || 'Intenta reformular tu solicitud.'}`
+          content: `⚠️ **API de generación de tal (${apiName}) no disponible**\n\nPor favor, cambia la API de generación por default en Configuración ⚙️.\n\nDetalle del error: ${data.error || 'Error desconocido'}`
         };
 
         setMessages(prev => [...prev, errorMessage]);
@@ -148,8 +151,8 @@ function ChatbotPage() {
               <div>
                 <h2>Generador de Proyectos con IA</h2>
                 <p>
-                  {selectedMateria 
-                    ? `Materia: ${MATERIAS.find(m => m.id === selectedMateria)?.nombre}` 
+                  {selectedMateria
+                    ? `Materia: ${MATERIAS.find(m => m.id === selectedMateria)?.nombre}`
                     : 'Selecciona una materia para comenzar'}
                 </p>
               </div>
@@ -163,7 +166,7 @@ function ChatbotPage() {
               <p className="selector-description">
                 Las materias son seriadas. Las más avanzadas incluyen temas de las anteriores.
               </p>
-              
+
               <div className="materias-grid">
                 {MATERIAS.map(materia => (
                   <div
@@ -176,10 +179,10 @@ function ChatbotPage() {
                       <span className="materia-icon">{materia.icon}</span>
                       <span className="materia-nivel">Nivel {materia.nivel}</span>
                     </div>
-                    
+
                     <h4>{materia.nombre}</h4>
                     <p className="materia-descripcion">{materia.descripcion}</p>
-                    
+
                     <div className="temas-preview">
                       <strong>Temas clave:</strong>
                       <div className="temas-tags">
@@ -214,7 +217,7 @@ function ChatbotPage() {
                   {MATERIAS.find(m => m.id === selectedMateria)?.nombre}
                 </span>
               </div>
-              <button 
+              <button
                 className="btn-change-materia"
                 onClick={() => {
                   setSelectedMateria(null);
@@ -228,8 +231,8 @@ function ChatbotPage() {
 
           <div className="messages-container">
             {messages.map((message, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`message ${message.role}`}
               >
                 <div className="message-avatar">
@@ -263,8 +266,8 @@ function ChatbotPage() {
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={
-                selectedMateria 
-                  ? "Describe qué proyecto quieres crear..." 
+                selectedMateria
+                  ? "Describe qué proyecto quieres crear..."
                   : "Primero selecciona una materia arriba ☝️"
               }
               rows={3}
@@ -283,7 +286,7 @@ function ChatbotPage() {
             <div className="integration-notice">
               <span className="notice-icon">✅</span>
               <p>
-                <strong>IA Integrada:</strong> Este chatbot está conectado con Google Gemini AI y 
+                <strong>IA Integrada:</strong> Este chatbot está conectado con Google Gemini AI y
                 usa los temarios de <code>{selectedMateria ? MATERIAS.find(m => m.id === selectedMateria)?.nombre : 'la materia seleccionada'}</code> para generar proyectos relevantes.
               </p>
             </div>

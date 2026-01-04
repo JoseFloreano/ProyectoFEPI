@@ -193,6 +193,7 @@ export const compilerAPI = {
         userRequest,
         materia,
         conversationHistory,
+        preferredApi: localStorage.getItem('preferredApi') || 'gemini'
       }),
     });
   },

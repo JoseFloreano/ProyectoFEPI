@@ -54,58 +54,67 @@ if (AI_CONFIG.groq.available) {
 // ===================================================================
 
 /**
- * Genera contenido con IA usando sistema de fallback
+ * Genera contenido con IA usando sistema de fallback con preferencia
  * @param {string} prompt - Prompt para la IA
- * @param {Object} options - Opciones adicionales (temperature, validator)
+ * @param {Object} options - Opciones adicionales (temperature, validator, preferredApi)
  * @returns {Promise<string>} - Respuesta de la IA
  */
 async function generateWithAI(prompt, options = {}) {
-  const { temperature = 0.7, validator = null } = options;
+  const { temperature = 0.7, validator = null, preferredApi = 'gemini' } = options;
 
-  // Intentar con Gemini primero
-  if (AI_CONFIG.gemini.available) {
+  // Determinar orden de intentos basado en preferencia
+  const primary = preferredApi === 'groq' ? 'groq' : 'gemini';
+  const secondary = primary === 'gemini' ? 'groq' : 'gemini';
+
+  console.log(`🤖 Preferencia de IA: ${primary.toUpperCase()}`);
+
+  // Intentar con la IA primaria primero
+  if (AI_CONFIG[primary].available) {
     try {
-      console.log('🤖 Usando Gemini AI...');
-      const response = await generateWithGemini(prompt, { temperature });
+      console.log(`🤖 Intentando con ${AI_CONFIG[primary].name}...`);
+      const response = await (primary === 'gemini'
+        ? generateWithGemini(prompt, { temperature })
+        : generateWithGroq(prompt, { temperature }));
 
-      // Validación opcional de la respuesta
       if (validator) {
         try {
-          // Si el validador lanza error, se captura abajo y activa el fallback
           validator(response);
         } catch (validationError) {
           throw new Error(`Validación de respuesta falló: ${validationError.message}`);
         }
       }
 
-      console.log('✅ Respuesta generada y validada con Gemini');
+      console.log(`✅ Respuesta generada con ${AI_CONFIG[primary].name}`);
       return response;
     } catch (error) {
-      console.warn('⚠️  Gemini falló:', error.message);
-      console.log('🔄 Intentando con Groq...');
+      console.warn(`⚠️  ${AI_CONFIG[primary].name} falló:`, error.message);
+      console.log(`🔄 Intentando con ${AI_CONFIG[secondary].name} (fallback)...`);
     }
+  } else {
+    console.warn(`⚠️  ${AI_CONFIG[primary].name} no está configurada. Intentando con backup.`);
   }
 
-  // Fallback a Groq
-  if (AI_CONFIG.groq.available) {
+  // Fallback a la secundaria
+  if (AI_CONFIG[secondary].available) {
     try {
-      console.log('🤖 Usando Groq AI (backup)...');
-      const response = await generateWithGroq(prompt, { temperature });
+      console.log(`🤖 Usando ${AI_CONFIG[secondary].name} (backup)...`);
+      const response = await (secondary === 'gemini'
+        ? generateWithGemini(prompt, { temperature })
+        : generateWithGroq(prompt, { temperature }));
 
-      // Validar también la respuesta de Groq
       if (validator) {
         validator(response);
       }
 
-      console.log('✅ Respuesta generada con Groq');
+      console.log(`✅ Respuesta generada con ${AI_CONFIG[secondary].name}`);
       return response;
     } catch (error) {
-      console.error('❌ Groq también falló:', error.message);
-      throw new Error('Todos los servicios de IA están temporalmente no disponibles o devolvieron respuestas inválidas.');
+      console.error(`❌ ${AI_CONFIG[secondary].name} también falló:`, error.message);
+      throw new Error(`Ambas APIs fallaron. Primaria (${primary}): Fallo/No disponible. Secundaria (${secondary}): ${error.message}`);
     }
   }
 
-  throw new Error('No hay servicios de IA configurados. Verifica tus API keys.');
+  throw new Error(`Servicio de generación ${primary} no disponible y ${secondary} no configurado.`);
 }
 
 /**
@@ -264,7 +273,7 @@ function obtenerMateriasDisponibles() {
 /**
  * Genera un proyecto personalizado usando IA con fallback
  */
-async function generarProyectoConIA({ userRequest, materia, conversationHistory = [] }) {
+async function generarProyectoConIA({ userRequest, materia, conversationHistory = [], preferredApi = 'gemini' }) {
   try {
     const temasDisponibles = await obtenerTemasDisponibles(materia);
 
@@ -332,7 +341,8 @@ REGLAS IMPORTANTES:
     // ===== USAR SISTEMA DE FALLBACK CON VALIDACIÓN =====
     const text = await generateWithAI(prompt, {
       temperature: 0.7,
-      validator: jsonValidator
+      validator: jsonValidator,
+      preferredApi
     });
 
     // Limpieza robusta de JSON (ya sabemos que es válido gracias al validador)

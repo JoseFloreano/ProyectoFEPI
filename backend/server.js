@@ -1,5 +1,5 @@
 // server.js - Servidor Express con integración de IA y MongoDB
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./config/database');
@@ -48,8 +48,8 @@ app.use('/api/projects', projectsRoutes);  // ← NUEVO
  * Health check endpoint
  */
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Servidor funcionando correctamente',
     timestamp: new Date().toISOString()
   });
@@ -73,35 +73,35 @@ app.post('/api/compile', async (req, res) => {
     // Si hay error, usar IA para generar sugerencias
     if (!result.success || !result.isCorrect) {
       let aiSuggestion = null;
-      
+
       try {
         switch (result.errorType) {
           case 'compilation':
             aiSuggestion = await aiService.analizarErrorCompilacion({
-              code, 
-              error: result.error, 
+              code,
+              error: result.error,
               materia
             });
             break;
-            
+
           case 'runtime':
             aiSuggestion = await aiService.analizarErrorEjecucion({
-              code, 
-              error: result.error, 
+              code,
+              error: result.error,
               materia
             });
             break;
-            
+
           case 'incorrect_output':
             aiSuggestion = await aiService.analizarOutputIncorrecto({
-              code, 
+              code,
               actualOutput: result.output,
-              expectedOutput: result.expectedOutput, 
+              expectedOutput: result.expectedOutput,
               materia
             });
             break;
         }
-        
+
         // Agregar sugerencia de IA al resultado
         if (aiSuggestion) {
           result.aiSuggestion = aiSuggestion;
@@ -142,15 +142,16 @@ app.post('/api/compile', async (req, res) => {
  * Body: { userRequest, materia, conversationHistory }
  */
 app.post('/api/generate-project', async (req, res) => {
-  const { userRequest, materia, conversationHistory } = req.body;
+  const { userRequest, materia, conversationHistory, preferredApi } = req.body;
 
-  console.log(`🤖 Generando proyecto con IA - Materia: ${materia}`);
+  console.log(`🤖 Generando proyecto con IA - Materia: ${materia}, API: ${preferredApi || 'default'}`);
 
   try {
     const result = await aiService.generarProyectoConIA({
       userRequest,
       materia,
-      conversationHistory
+      conversationHistory,
+      preferredApi
     });
 
     if (result.success) {
@@ -197,17 +198,17 @@ app.get('/api/temas/:materia', async (req, res) => {
 
   try {
     const temas = await aiService.obtenerTemasDisponibles(materia);
-    
+
     // Obtener nombre legible de la materia
     const nombresMateria = {
       'fundamentos': 'Fundamentos de Programación',
       'estructuras': 'Algoritmos y Estructuras de Datos',
       'analisis': 'Análisis y Diseño de Algoritmos'
     };
-    
-    res.json({ 
+
+    res.json({
       materia: nombresMateria[materia] || materia,
-      temas 
+      temas
     });
   } catch (error) {
     console.error('❌ Error al obtener temas:', error);
@@ -298,7 +299,7 @@ async function startServer() {
 
     // Inicializar el compilador
     await cCompiler.initialize();
-    
+
     // Iniciar servidor Express
     app.listen(PORT, () => {
       console.log('╔════════════════════════════════════════════════════════╗');
@@ -327,7 +328,7 @@ async function startServer() {
       console.log(`  - POST /api/projects/custom`);
       console.log(`  - GET  /api/projects/custom`);
       console.log(`  - DELETE /api/projects/custom/:id\n`);
-      
+
       if (process.env.GEMINI_API_KEY) {
         console.log('✅ Integración con Google Gemini AI activa');
       } else {
@@ -352,10 +353,10 @@ async function startServer() {
  */
 async function shutdown() {
   console.log('\n🛑 Cerrando servidor...');
-  
+
   // Limpiar recursos del compilador
   await cCompiler.shutdown();
-  
+
   console.log('✅ Servidor cerrado correctamente');
   process.exit(0);
 }
