@@ -7,6 +7,28 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  /* 
+    Función de limpieza centralizada 
+    Elimina TODOS los datos de sesión y progreso local
+  */
+  const clearSessionData = () => {
+    console.log("🧹 Limpiando datos de sesión local...");
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("lastSyncUserId");
+    localStorage.removeItem("c-practice-projects");
+    localStorage.removeItem("c-practice-completed");
+    localStorage.removeItem("c-practice-unlocked");
+    localStorage.removeItem("c-practice-active-project");
+  };
+
+  const logout = () => {
+    console.log("🚪 AuthContext: Ejecutando logout explicitamente.");
+    clearSessionData();
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       console.log("🔒 AuthContext: Iniciando verificación de sesión...");
@@ -21,13 +43,24 @@ export const AuthProvider = ({ children }) => {
             setUser(response.user);
           } else {
             console.warn("⚠️ Sesión inválida según backend. Cerrando sesión.", response);
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
+            clearSessionData(); // Usar limpieza completa
           }
         } catch (error) {
-          console.error("❌ Error verificando sesión:", error);
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          console.error("❌ Error verificando sesión al recargar:", error);
+          // IMPORTANTE: Si es error de red (servidor apagado), NO cerrar sesión automáticamente
+          // Solo cerrar si es 401 o token inválido
+
+          if (error.message && (error.message.includes('401') || error.message.includes('token'))) {
+            console.warn("❌ Token expirado o inválido. Limpiando sesión.");
+            clearSessionData();
+          } else {
+            console.warn("⚠️ Error de conexión con backend. Manteniendo sesión local temporalmente.");
+            // Opcional: Podríamos mantener el user del localStorage si queremos "offline mode"
+            const localUser = localStorage.getItem("user");
+            if (localUser) {
+              setUser(JSON.parse(localUser));
+            }
+          }
         }
       } else {
         console.log("ℹ️ No hay token almacenado.");
@@ -101,19 +134,6 @@ export const AuthProvider = ({ children }) => {
       console.error("Register error:", error);
       return { success: false, error: error.message };
     }
-  };
-
-  const logout = () => {
-    console.log("🚪 AuthContext: Ejecutando logout explicitamente.");
-    setUser(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("lastSyncUserId");
-    localStorage.removeItem("c-practice-projects");
-    localStorage.removeItem("c-practice-completed");
-    localStorage.removeItem("c-practice-unlocked");
-    localStorage.removeItem("c-practice-active-project");
-    window.location.href = '/login'; // Forzar redirección limpia
   };
 
   return (

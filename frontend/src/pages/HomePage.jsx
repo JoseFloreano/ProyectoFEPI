@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
 
 function HomePage({ onNavigate }) {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, loading } = useAuth();
   const databaseContext = useDatabase();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
@@ -42,6 +42,21 @@ function HomePage({ onNavigate }) {
 
     handleGoogleLogin();
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="page-wrapper">
+        <div className="loading-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+          <div className="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p style={{ marginTop: '1rem', color: '#666' }}>Cargando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-wrapper">

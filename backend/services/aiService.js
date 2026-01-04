@@ -56,18 +56,29 @@ if (AI_CONFIG.groq.available) {
 /**
  * Genera contenido con IA usando sistema de fallback
  * @param {string} prompt - Prompt para la IA
- * @param {Object} options - Opciones adicionales
+ * @param {Object} options - Opciones adicionales (temperature, validator)
  * @returns {Promise<string>} - Respuesta de la IA
  */
 async function generateWithAI(prompt, options = {}) {
-  const { maxRetries = 1, temperature = 0.7 } = options;
+  const { temperature = 0.7, validator = null } = options;
 
   // Intentar con Gemini primero
   if (AI_CONFIG.gemini.available) {
     try {
       console.log('🤖 Usando Gemini AI...');
       const response = await generateWithGemini(prompt, { temperature });
-      console.log('✅ Respuesta generada con Gemini');
+
+      // Validación opcional de la respuesta
+      if (validator) {
+        try {
+          // Si el validador lanza error, se captura abajo y activa el fallback
+          validator(response);
+        } catch (validationError) {
+          throw new Error(`Validación de respuesta falló: ${validationError.message}`);
+        }
+      }
+
+      console.log('✅ Respuesta generada y validada con Gemini');
       return response;
     } catch (error) {
       console.warn('⚠️  Gemini falló:', error.message);
@@ -80,11 +91,17 @@ async function generateWithAI(prompt, options = {}) {
     try {
       console.log('🤖 Usando Groq AI (backup)...');
       const response = await generateWithGroq(prompt, { temperature });
+
+      // Validar también la respuesta de Groq
+      if (validator) {
+        validator(response);
+      }
+
       console.log('✅ Respuesta generada con Groq');
       return response;
     } catch (error) {
       console.error('❌ Groq también falló:', error.message);
-      throw new Error('Todos los servicios de IA están temporalmente no disponibles');
+      throw new Error('Todos los servicios de IA están temporalmente no disponibles o devolvieron respuestas inválidas.');
     }
   }
 
@@ -102,6 +119,7 @@ async function generateWithGemini(prompt, options = {}) {
       topP: 0.95,
       topK: 40,
       maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
     }
   });
 
@@ -125,14 +143,16 @@ async function generateWithGroq(prompt, options = {}) {
     temperature: options.temperature || 0.7,
     max_tokens: 8192,
     top_p: 0.95,
-    stream: false
+    stream: false,
+    // Groq también soporta modo JSON en algunos modelos
+    response_format: { type: "json_object" }
   });
 
   return chatCompletion.choices[0]?.message?.content || '';
 }
 
 // ===================================================================
-// FUNCIONES DE TEMARIOS (sin cambios)
+// FUNCIONES DE TEMARIOS
 // ===================================================================
 
 const TEMARIOS_DIR = path.join(__dirname, '..', 'temarios');
@@ -297,17 +317,28 @@ REGLAS IMPORTANTES:
 7. Asegúrate de que el JSON sea válido y parseable
 `;
 
-    // ===== USAR SISTEMA DE FALLBACK =====
-    // ===== USAR SISTEMA DE FALLBACK =====
-    const text = await generateWithAI(prompt, { temperature: 0.7 });
+    // Validador de JSON simple para activar el fallback
+    const jsonValidator = (text) => {
+      let clean = text.trim();
+      clean = clean.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1) throw new Error("No se encontró estructura JSON");
+      // Intentar parsear para verificar integridad
+      const jsonStr = clean.substring(firstBrace, lastBrace + 1);
+      JSON.parse(jsonStr);
+    };
 
-    // Limpieza robusta de JSON
+    // ===== USAR SISTEMA DE FALLBACK CON VALIDACIÓN =====
+    const text = await generateWithAI(prompt, {
+      temperature: 0.7,
+      validator: jsonValidator
+    });
+
+    // Limpieza robusta de JSON (ya sabemos que es válido gracias al validador)
     let jsonText = text.trim();
-
-    // 1. Eliminar bloques de markdown si existen
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-    // 2. Extraer solo el objeto JSON (desde el primer '{' hasta el último '}')
     const firstBrace = jsonText.indexOf('{');
     const lastBrace = jsonText.lastIndexOf('}');
 
