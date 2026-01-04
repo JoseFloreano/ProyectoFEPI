@@ -91,6 +91,61 @@ function SettingsModal({ isOpen, onClose }) {
             </div>
           </div>
 
+          {/* Sección de Preferencias de IA */}
+          <div className="settings-section">
+            <h3 className="section-title">
+              <span className="section-icon">🧠</span>
+              Motor de IA
+            </h3>
+
+            <div className="theme-selector">
+              <div className="theme-description">
+                <p>Selecciona qué IA generará tus proyectos</p>
+              </div>
+
+              <div className="theme-options">
+                <button
+                  className={`theme-option ${localStorage.getItem('preferredApi') !== 'groq' ? 'active' : ''}`}
+                  onClick={() => {
+                    localStorage.setItem('preferredApi', 'gemini');
+                    // Forzar re-render simple (en app real usar context)
+                    window.dispatchEvent(new Event('storage'));
+                    // onClose(); // Comentado para permitir ver el cambio
+                    this.forceUpdate && this.forceUpdate();
+                  }}
+                >
+                  <div className="theme-info">
+                    <span className="theme-icon">💎</span>
+                    <div>
+                      <h4>Gemini</h4>
+                      <p>Google AI (Default)</p>
+                    </div>
+                  </div>
+                  {localStorage.getItem('preferredApi') !== 'groq' && <span className="theme-check">✓</span>}
+                </button>
+
+                <button
+                  className={`theme-option ${localStorage.getItem('preferredApi') === 'groq' ? 'active' : ''}`}
+                  onClick={() => {
+                    localStorage.setItem('preferredApi', 'groq');
+                    window.dispatchEvent(new Event('storage'));
+                    // onClose();
+                    this.forceUpdate && this.forceUpdate();
+                  }}
+                >
+                  <div className="theme-info">
+                    <span className="theme-icon">⚡</span>
+                    <div>
+                      <h4>Groq</h4>
+                      <p>Llama 3 (Rápido)</p>
+                    </div>
+                  </div>
+                  {localStorage.getItem('preferredApi') === 'groq' && <span className="theme-check">✓</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Sección de Información */}
           <div className="settings-section">
             <h3 className="section-title">
