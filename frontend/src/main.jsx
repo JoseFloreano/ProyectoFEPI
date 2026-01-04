@@ -7,10 +7,21 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+console.log("Iniciando main.jsx");
+
+const env = import.meta.env;
+console.log("Variables de entorno cargadas:", Object.keys(env));
+console.log("VITE_GOOGLE_CLIENT_ID disponible?", !!env.VITE_GOOGLE_CLIENT_ID);
+// No loguear el valor real por seguridad en logs compartidos, pero el usuario lo verá en su consola local
+if (env.VITE_GOOGLE_CLIENT_ID) {
+  console.log("Longitud del ID:", env.VITE_GOOGLE_CLIENT_ID.length);
+}
+
+const googleClientId = env.VITE_GOOGLE_CLIENT_ID;
 
 if (!googleClientId) {
   console.error("Falta VITE_GOOGLE_CLIENT_ID en el archivo .env");
+  console.error("Asegúrate de que el archivo .env está en: frontend/.env");
 }
 
 createRoot(document.getElementById('root')).render(

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 function Navbar({ currentPage, onNavigate }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   const { user } = useAuth();
 
   const navItems = [
@@ -23,7 +23,7 @@ function Navbar({ currentPage, onNavigate }) {
           <span className="logo-icon">{'{ }'}</span>
           <span className="logo-text">ESCOMENTOR</span>
         </div>
-        
+
         <div className="navbar-menu">
           {navItems.map(item => (
             <button
@@ -39,12 +39,21 @@ function Navbar({ currentPage, onNavigate }) {
 
         {user && (
           <div className="user-info-navbar">
-            <img src={user.picture} alt="User avatar"/>
+            {/* Debugging: Ver qué datos tiene el usuario */}
+            {console.log("Navbar user data:", user)}
+
+            <img
+              src={user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nombre || user.name || 'U')}&background=random&color=fff&bold=true`}
+              alt="User avatar"
+            />
+            <span className="user-name-nav" style={{ marginLeft: '8px', fontSize: '0.9rem' }}>
+              {user.nombre || user.name}
+            </span>
           </div>
         )}
 
         <div className="navbar-actions">
-          <button 
+          <button
             className="btn-secondary"
             onClick={() => setIsSettingsOpen(true)}
             title="Configuración"
@@ -53,15 +62,15 @@ function Navbar({ currentPage, onNavigate }) {
           </button>
         </div>
 
-        
+
       </nav>
-      
-      
-      
+
+
+
 
 
       {/* Modal de Configuración */}
-      <SettingsModal 
+      <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />

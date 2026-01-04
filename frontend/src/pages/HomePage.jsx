@@ -52,12 +52,12 @@ function HomePage({ onNavigate }) {
               <span className="badge-icon">⚡</span>
               <span>Aprende C de manera interactiva</span>
             </div>
-            
+
             <h1 className="hero-title">
               Domina la Programación en C
               <span className="title-highlight"> Proyecto por Proyecto</span>
             </h1>
-            
+
             <p className="hero-description">
               Una plataforma interactiva que te guía desde los fundamentos hasta algoritmos avanzados.
               Compila en tiempo real, recibe retroalimentación instantánea y construye proyectos reales.
@@ -82,7 +82,7 @@ function HomePage({ onNavigate }) {
                 <>
                   {/* Usuario ya logueado */}
                   <div className="user-info">
-                    <img 
+                    <img
                       src={user.picture}
                       alt="avatar"
                       style={{ width: '40px', borderRadius: '50%', marginRight: '10px' }}
@@ -90,7 +90,7 @@ function HomePage({ onNavigate }) {
                     <span className="user-name">Hola, {user.name}</span>
                   </div>
 
-                  <button 
+                  <button
                     className="btn-primary-large"
                     onClick={() => onNavigate('exercises')}
                     disabled={isSyncing}
@@ -98,8 +98,8 @@ function HomePage({ onNavigate }) {
                     <span>{isSyncing ? 'Sincronizando...' : 'Comenzar a Practicar'}</span>
                     <span className="btn-icon">→</span>
                   </button>
-                  
-                  <button 
+
+                  <button
                     className="btn-secondary-large"
                     onClick={() => onNavigate('chatbot')}
                     disabled={isSyncing}
@@ -144,7 +144,7 @@ int main() {
 
         <section className="features-section">
           <h2 className="section-title">¿Cómo Funciona?</h2>
-          
+
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon">🎯</div>
@@ -186,7 +186,7 @@ int main() {
 
         <section className="projects-preview">
           <h2 className="section-title">Proyectos Disponibles</h2>
-          
+
           <div className="projects-cards">
             <div className="project-preview-card easy">
               <div className="card-header">
@@ -231,7 +231,7 @@ int main() {
             </div>
           </div>
 
-          <button 
+          <button
             className="btn-view-all"
             onClick={() => onNavigate('projects')}
           >
@@ -243,12 +243,21 @@ int main() {
           <div className="cta-content">
             <h2>¿Listo para Empezar?</h2>
             <p>Únete a estudiantes que están aprendiendo C de manera práctica y efectiva.</p>
-            <button 
+            <button
               className="btn-cta"
-              onClick={() => onNavigate(user ? 'exercises' : 'home')}
+              onClick={() => onNavigate(user ? 'exercises' : 'register')}
             >
-              {user ? 'Ir a Ejercicios' : 'Inicia Sesión para Comenzar'}
+              {user ? 'Ir a Ejercicios' : 'Crear Cuenta Gratis'}
             </button>
+            {!user && (
+              <button
+                className="btn-link-cta"
+                onClick={() => onNavigate('login')}
+                style={{ display: 'block', margin: '1rem auto', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                ¿Ya tienes cuenta? Inicia sesión
+              </button>
+            )}
           </div>
         </section>
       </div>

@@ -89,6 +89,69 @@ router.post('/register', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/google
+ * Iniciar sesión o registrarse con Google
+ */
+router.post('/google', async (req, res) => {
+  try {
+    const { email, name, picture, googleId } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email es requerido.' });
+    }
+
+    // 1. Verificar si el usuario ya existe
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Usuario existe: Actualizar datos si es necesario (opcional)
+      // Si quieres actualizar foto o nombre:
+      // user.nombre = name;
+      // if (picture) user.picture = picture; // Si agregas campo picture al modelo
+      // await user.save();
+    } else {
+      // 2. Usuario no existe: Crearlo
+      // Generamos una contraseña aleatoria segura para cumplir con el esquema
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+
+      user = new User({
+        nombre: name || email.split('@')[0],
+        email: email,
+        password: randomPassword, // Se hasheará automáticamente por el pre-save hook
+        carrera: 'Ingeniería en Inteligencia Artificial', // Default
+        activo: true
+      });
+
+      await user.save();
+      console.log(`✅ Nuevo usuario creado vía Google: ${email}`);
+    }
+
+    // 3. Generar token de sesión propio
+    const token = generateToken(user._id);
+
+    // 4. Actualizar acceso
+    await user.actualizarAcceso();
+
+    res.json({
+      success: true,
+      message: 'Autenticación con Google exitosa.',
+      data: {
+        user: user.toJSON(),
+        token
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en Google Auth:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error en autenticación con Google.',
+      error: error.message
+    });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Iniciar sesión
  */

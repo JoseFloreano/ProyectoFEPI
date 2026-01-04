@@ -11,7 +11,7 @@ const { createReadStream } = require('fs');
 // ===================================================================
 
 // Inicializar Gemini AI
-const genAI = process.env.GEMINI_API_KEY 
+const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
@@ -95,7 +95,7 @@ async function generateWithAI(prompt, options = {}) {
  * Genera contenido con Gemini
  */
 async function generateWithGemini(prompt, options = {}) {
-  const model = genAI.getGenerativeModel({ 
+  const model = genAI.getGenerativeModel({
     model: AI_CONFIG.gemini.model,
     generationConfig: {
       temperature: options.temperature || 0.7,
@@ -298,13 +298,38 @@ REGLAS IMPORTANTES:
 `;
 
     // ===== USAR SISTEMA DE FALLBACK =====
+    // ===== USAR SISTEMA DE FALLBACK =====
     const text = await generateWithAI(prompt, { temperature: 0.7 });
 
-    // Limpiar y parsear la respuesta
+    // Limpieza robusta de JSON
     let jsonText = text.trim();
+
+    // 1. Eliminar bloques de markdown si existen
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-    const projectData = JSON.parse(jsonText);
+    // 2. Extraer solo el objeto JSON (desde el primer '{' hasta el último '}')
+    const firstBrace = jsonText.indexOf('{');
+    const lastBrace = jsonText.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+    }
+
+    // 3. Intentar parsear
+    let projectData;
+    try {
+      projectData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error('Error parseando JSON de IA. Texto recibido:', jsonText);
+      // Intento de recuperación básica: escapar saltos de linea no escapados en strings
+      try {
+        const sanitized = jsonText.replace(/\n/g, '\\n');
+        projectData = JSON.parse(sanitized);
+      } catch (retryError) {
+        throw new Error(`Respuesta de IA no es un JSON válido: ${parseError.message}`);
+      }
+    }
+
     const validatedProject = validarYCompletarProyecto(projectData, materia);
 
     return {

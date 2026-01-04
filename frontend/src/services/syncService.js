@@ -20,8 +20,8 @@ export const syncFromMongo = async (databaseContext) => {
     const projectsData = await projectsResponse.json();
 
     // Obtener funciones del DatabaseContext
-    const { 
-      completeExercise, 
+    const {
+      completeExercise,
       unlockProject,
       clearAllProgress,
       setProjects
@@ -44,6 +44,10 @@ export const syncFromMongo = async (databaseContext) => {
     if (projectsData.success && projectsData.data.projects) {
       // Guardar todos los proyectos (base + personalizados) en local
       localStorage.setItem('c-practice-projects', JSON.stringify(projectsData.data.projects));
+      // Actualizar estado de React inmediatamente
+      if (setProjects) {
+        setProjects(projectsData.data.projects);
+      }
     }
 
     console.log('✅ Sincronización completada desde MongoDB');
@@ -51,8 +55,8 @@ export const syncFromMongo = async (databaseContext) => {
     console.log(`🚀 Proyectos: ${mongoProgress.proyectosDesbloqueados.length}`);
     console.log(`✨ Proyectos personalizados: ${projectsData.data?.personalizados || 0}`);
 
-    // Forzar recarga de proyectos en el contexto
-    window.location.reload();
+    // Eliminado: window.location.reload(); 
+    // No es necesario recargar la página, el estado ya se actualizó en DatabaseContext
 
     return mongoProgress;
   } catch (error) {
@@ -67,7 +71,7 @@ export const syncFromMongo = async (databaseContext) => {
 export const needsFullSync = async (databaseContext) => {
   try {
     const { getCompletedExercises, getUnlockedProjects } = databaseContext;
-    
+
     const mongoProgress = await progressAPI.getFullProgress();
 
     const localExercises = getCompletedExercises();
@@ -83,7 +87,7 @@ export const needsFullSync = async (databaseContext) => {
 
     const localExerciseIds = new Set(localExercises);
     const mongoExerciseIds = new Set(mongoProgress.ejerciciosCompletados);
-    
+
     for (const id of mongoExerciseIds) {
       if (!localExerciseIds.has(id)) {
         console.log('⚠️ Ejercicio en MongoDB no está en local:', id);
@@ -101,7 +105,7 @@ export const needsFullSync = async (databaseContext) => {
       const projectsData = await projectsResponse.json();
 
       const localProjects = JSON.parse(localStorage.getItem('c-practice-projects') || '[]');
-      
+
       if (projectsData.data.projects.length !== localProjects.length) {
         console.log('⚠️ Cantidad de proyectos no coincide');
         return true;
@@ -144,7 +148,7 @@ export const saveToMongo = async (type, id) => {
 export const saveCustomProjectToMongo = async (projectData) => {
   try {
     const token = localStorage.getItem('token');
-    
+
     const response = await fetch('http://localhost:3001/api/projects/custom', {
       method: 'POST',
       headers: {
@@ -177,7 +181,7 @@ export const initialSync = async (userId, databaseContext) => {
 
     if (lastSyncUserId === userId) {
       const needsSync = await needsFullSync(databaseContext);
-      
+
       if (!needsSync) {
         console.log('✅ Usuario ya sincronizado, no se requiere sync');
         return 'already-synced';

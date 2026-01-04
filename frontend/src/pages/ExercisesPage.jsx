@@ -7,11 +7,11 @@ import ResultPanel from '../components/ResultPanel';
 import '../styles/ExercisesPage.css';
 
 function ExercisesPage() {
-  const { 
-    projects, 
-    activeProject, 
-    setActiveProjectById, 
-    completeExercise, 
+  const {
+    projects,
+    activeProject,
+    setActiveProjectById,
+    completeExercise,
     isExerciseCompleted,
     getProjectProgress
   } = useDatabase();
@@ -25,11 +25,11 @@ function ExercisesPage() {
   const [loadingTheory, setLoadingTheory] = useState(false);
   const [showTheory, setShowTheory] = useState(false);
 
-  const needsInput = userCode.includes('scanf') || 
-                     userCode.includes('gets') || 
-                     userCode.includes('fgets') ||
-                     userCode.includes('getchar') ||
-                     userCode.includes('getc');
+  const needsInput = userCode.includes('scanf') ||
+    userCode.includes('gets') ||
+    userCode.includes('fgets') ||
+    userCode.includes('getchar') ||
+    userCode.includes('getc');
 
   const handleProjectSelect = (project) => {
     setActiveProjectById(project.id);
@@ -44,6 +44,7 @@ function ExercisesPage() {
     setUserInputs('');
     setShowTheory(false);
     setLoadingTheory(false);
+    setCompilationResult(null); // Limpiar resultado anterior
   };
 
   const handleCodeChange = (code) => {
@@ -63,7 +64,7 @@ function ExercisesPage() {
         selectedExercise.id,
         userInputs
       );
-      
+
       setCompilationResult({
         success: result.success,
         output: result.output,
@@ -171,8 +172,8 @@ function ExercisesPage() {
 
                   <div className="project-progress">
                     <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
+                      <div
+                        className="progress-fill"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -206,7 +207,7 @@ function ExercisesPage() {
                 <h3>Ejercicios</h3>
                 {activeProject.exercises.map(exercise => {
                   const isCompleted = isExerciseCompleted(exercise.id);
-                  
+
                   return (
                     <div
                       key={exercise.id}
@@ -227,7 +228,7 @@ function ExercisesPage() {
           ) : (
             <div className="exercise-workspace">
               <div className="exercise-detail">
-                <button 
+                <button
                   className="back-button"
                   onClick={() => setSelectedExercise(null)}
                 >
@@ -259,7 +260,7 @@ function ExercisesPage() {
                 </div>
 
                 <p className="exercise-description">{selectedExercise.description}</p>
-                
+
                 <div className="expected-output-box">
                   <h4>Output Esperado:</h4>
                   <pre>{selectedExercise.expectedOutput}</pre>
@@ -277,7 +278,7 @@ function ExercisesPage() {
                 )}
               </div>
 
-              <CodeEditor 
+              <CodeEditor
                 code={userCode}
                 onChange={handleCodeChange}
                 onCompile={handleCompile}
@@ -294,7 +295,7 @@ function ExercisesPage() {
                       scanf detectado
                     </span>
                   </div>
-                  
+
                   <textarea
                     className="user-input-box"
                     value={userInputs}
@@ -302,10 +303,10 @@ function ExercisesPage() {
                     placeholder="Escribe EXACTAMENTE lo que ingresarías en la consola&#10;&#10;Ejemplos:&#10;• Un valor por línea → Juan [Enter] 25 [Enter]&#10;• Varios en una línea → 0 0 [Enter]&#10;• Mixto → María [Enter] 30 1.75 [Enter]"
                     rows={6}
                   />
-                  
+
                   <p className="input-help-text">
-                    💡 Escribe los inputs <strong>tal como los ingresarías en la consola</strong>. 
-                    Si <code>scanf("%d %d", &x, &y)</code> lee dos números en una línea, 
+                    💡 Escribe los inputs <strong>tal como los ingresarías en la consola</strong>.
+                    Si <code>scanf("%d %d", &x, &y)</code> lee dos números en una línea,
                     escribe <code>5 10</code> (con espacio). Si lee líneas separadas, usa Enter entre valores.
                   </p>
                 </div>

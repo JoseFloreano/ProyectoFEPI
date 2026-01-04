@@ -5,10 +5,15 @@ import ExercisesPage from './pages/ExercisesPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ChatbotPage from './pages/ChatbotPage';
 import MateriasPage from './pages/MateriasPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import { DatabaseProvider } from './context/DatabaseContext';
 import './App.css';
 
+console.log("Cargando App.jsx");
+
 function App() {
+  console.log("Renderizando App component");
   const [currentPage, setCurrentPage] = useState('home');
   // Renderizar la página actual
   const renderPage = () => {
@@ -23,6 +28,10 @@ function App() {
         return <ChatbotPage />;
       case 'materias':
         return <MateriasPage />;
+      case 'login':
+        return <LoginPage onNavigate={setCurrentPage} />;
+      case 'register':
+        return <RegisterPage onNavigate={setCurrentPage} />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }

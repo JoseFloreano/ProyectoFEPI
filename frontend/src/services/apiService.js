@@ -1,14 +1,14 @@
 // frontend/src/services/apiService.js
 // Servicio centralizado para todas las llamadas a la API
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 /**
  * Helper para hacer requests con autenticación
  */
 const apiRequest = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
-  
+
   const config = {
     ...options,
     headers: {
@@ -55,6 +55,16 @@ export const authAPI = {
     return apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    });
+  },
+
+  /**
+   * Login con Google
+   */
+  async googleLogin(googleData) {
+    return apiRequest('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(googleData),
     });
   },
 

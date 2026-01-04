@@ -98,7 +98,14 @@ router.get('/projects', authenticate, async (req, res) => {
  */
 router.post('/projects/:id/unlock', authenticate, async (req, res) => {
   try {
-    const projectId = req.params.id;
+    const projectId = parseInt(req.params.id);
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de proyecto inválido.'
+      });
+    }
 
     const user = await User.findById(req.userId);
     await user.desbloquearProyecto(projectId);

@@ -32,7 +32,7 @@ const BASE_PROJECTS = [
         expectedOutput: '6\n42\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    // Calcula 10 - 4 y 6 * 7\n    \n    return 0;\n}`,
         hints: ['Usa variables separadas para cada operación', 'Imprime cada resultado en una línea diferente'],
-        theoryTopics: [ 'operadores aritméticos', 'variables', 'printf']
+        theoryTopics: ['operadores aritméticos', 'variables', 'printf']
       },
       {
         id: 3,
@@ -42,7 +42,7 @@ const BASE_PROJECTS = [
         expectedOutput: '3.75\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    float resultado;\n    // Calcula 15 / 4.0\n    \n    return 0;\n}`,
         starterCode: `#include <stdio.h>\n\nint main() {\n    float resultado;\n    // Calcula 15 / 4.0\n    \n    return 0;\n}`,
-        hints: ['Usa float para manejar decimales', 'Asegúrate de dividir entre 4.0 (float) no 4 (int)'], 
+        hints: ['Usa float para manejar decimales', 'Asegúrate de dividir entre 4.0 (float) no 4 (int)'],
         theoryTopics: ['tipos de datos', 'division_decimal', 'formato de impresión con printf']
       }
     ],
@@ -79,7 +79,7 @@ const BASE_PROJECTS = [
         expectedOutput: '12\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    int a = 5, b = 12, c = 8;\n    // Encuentra el mayor\n    \n    return 0;\n}`,
         hints: ['Compara primero a y b', 'Luego compara el resultado con c'],
-        theoryTopics: ['estructuras condicionales', 'operadores de comparación', 'printf'] 
+        theoryTopics: ['estructuras condicionales', 'operadores de comparación', 'printf']
       },
       {
         id: 6,
@@ -115,7 +115,7 @@ const BASE_PROJECTS = [
         expectedOutput: '120\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    int n = 5;\n    int factorial = 1;\n    // Usa un bucle para calcular el factorial\n    \n    return 0;\n}`,
         hints: ['Usa un bucle for desde 1 hasta n', 'Multiplica factorial por cada número en el bucle'],
-        theoryTopics: ['bucles', 'variables', 'operadores de asignación'] 
+        theoryTopics: ['bucles', 'variables', 'operadores de asignación']
       },
       {
         id: 8,
@@ -198,6 +198,7 @@ router.post('/custom', authenticate, async (req, res) => {
     const user = await User.findById(req.userId);
 
     // Asignar ID único (timestamp + cantidad de proyectos personalizados)
+    // Asignar ID único (timestamp + cantidad de proyectos personalizados)
     const customProject = {
       ...projectData,
       id: Date.now() + user.proyectosPersonalizados.length,
@@ -205,7 +206,10 @@ router.post('/custom', authenticate, async (req, res) => {
       fechaCreacion: Date.now()
     };
 
+    console.log(`💾 Guardando proyecto personalizado: ${customProject.name} (${customProject.exercises.length} ejercicios)`);
+
     await user.agregarProyectoPersonalizado(customProject);
+    console.log('✅ Proyecto guardado en usuario.');
 
     res.status(201).json({
       success: true,
