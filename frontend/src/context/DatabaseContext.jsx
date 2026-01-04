@@ -48,7 +48,6 @@ const initialProjects = [
         description: 'Calcula la división de 15 entre 4 con 2 decimales.',
         expectedOutput: '3.75\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    float resultado;\n    // Calcula 15 / 4.0\n    \n    return 0;\n}`,
-        starterCode: `#include <stdio.h>\n\nint main() {\n    float resultado;\n    // Calcula 15 / 4.0\n    \n    return 0;\n}`,
         hints: ['Usa float para manejar decimales', 'Asegúrate de dividir entre 4.0 (float) no 4 (int)'], 
         theoryTopics: ['tipos de datos', 'division_decimal', 'formato de impresión con printf']
       }
