@@ -112,16 +112,10 @@ function ExercisesPage() {
     setLoadingTheory(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/theory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          materia: 'fundamentos',
-          topics: selectedExercise.theoryTopics || [selectedExercise.title]
-        })
-      });
-
-      const data = await response.json();
+      const data = await compilerAPI.generateTheory(
+        selectedExercise.theoryTopics || [selectedExercise.title],
+        'fundamentos' // Podrías parametrizar esto si tienes la info de la materia del proyecto
+      );
 
       setTheoryCache(prev => ({
         ...prev,

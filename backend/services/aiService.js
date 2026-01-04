@@ -501,7 +501,7 @@ NO des la solución completa. Máximo 50 palabras con emojis ocasionales.
 /**
  * Genera teoría educativa a partir de topics específicos
  */
-async function generarTeoriaPorTemas({ topics, materia }) {
+async function generarTeoriaPorTemas({ topics, materia, preferredApi = 'gemini' }) {
   try {
     const prompt = `
 Eres un profesor experto en programación en C para ${getNombreMateria(materia)}.
@@ -521,7 +521,10 @@ REGLAS:
 `;
 
     // ===== USAR SISTEMA DE FALLBACK =====
-    return await generateWithAI(prompt, { temperature: 0.7 });
+    return await generateWithAI(prompt, {
+      temperature: 0.7,
+      preferredApi
+    });
 
   } catch (error) {
     console.error('Error al generar teoría:', error);

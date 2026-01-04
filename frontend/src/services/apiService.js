@@ -197,6 +197,20 @@ export const compilerAPI = {
       }),
     });
   },
+
+  /**
+   * Generar teoría educativa con IA
+   */
+  async generateTheory(topics, materia) {
+    return apiRequest('/theory', {
+      method: 'POST',
+      body: JSON.stringify({
+        topics,
+        materia,
+        preferredApi: localStorage.getItem('preferredApi') || 'gemini'
+      }),
+    });
+  },
 };
 
 // ===================================================================

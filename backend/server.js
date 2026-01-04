@@ -225,7 +225,7 @@ app.get('/api/temas/:materia', async (req, res) => {
  * Body: { topics: [], materia }
  */
 app.post('/api/theory', async (req, res) => {
-  const { topics, materia = 'fundamentos' } = req.body;
+  const { topics, materia = 'fundamentos', preferredApi } = req.body;
 
   if (!topics || !Array.isArray(topics) || topics.length === 0) {
     return res.status(400).json({
@@ -233,13 +233,14 @@ app.post('/api/theory', async (req, res) => {
     });
   }
 
-  console.log(`📘 Generando teoría IA - Materia: ${materia}`);
+  console.log(`📘 Generando teoría IA - Materia: ${materia}, API: ${preferredApi || 'default'}`);
   console.log(`📚 Topics:`, topics);
 
   try {
     const text = await aiService.generarTeoriaPorTemas({
       topics,
-      materia
+      materia,
+      preferredApi
     });
 
     res.json({ text });
