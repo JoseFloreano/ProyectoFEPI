@@ -4,6 +4,7 @@ import { compilerAPI } from '../services/apiService';
 import { dualSave } from '../services/syncService';
 import CodeEditor from '../components/CodeEditor';
 import ResultPanel from '../components/ResultPanel';
+import ReactMarkdown from 'react-markdown';
 import '../styles/ExercisesPage.css';
 
 function ExercisesPage() {
@@ -58,18 +59,31 @@ function ExercisesPage() {
       // Intentar parsear como JSON
       const json = JSON.parse(suggestion);
 
-      // Si tiene las claves específicas que esperamos
-      if (json['1_diferencias_outputs'] || json['2_errores_logicos_formato']) {
-        return `
-### 🔍 Análisis de Error
+      let markdown = "### 🔍 Análisis de Error\n\n";
+      let hasContent = false;
 
-* **❌ Diferencias:** ${json['1_diferencias_outputs'] || 'N/A'}
-* **🐛 Errores Lógicos:** ${json['2_errores_logicos_formato'] || 'N/A'}
-* **💡 Pistas:** ${json['3_pistas_especificas'] || 'N/A'}
-* **🕵️‍♂️ Consejo:** ${json['4_consejo_verificar_output'] || 'N/A'}
-        `.trim();
-      }
-      return suggestion; // Si es JSON pero no el esperado, devolver tal cual (o formatear genérico)
+      Object.entries(json).forEach(([key, value]) => {
+        // Ignorar claves numéricas puras o vacías
+        if (!value) return;
+
+        // Limpiar clave: quitar números iniciales '1_' y guiones bajos
+        const title = key
+          .replace(/^\d+[_.]/, '') // Quita '1_', '2.', etc.
+          .replace(/_/g, ' ')      // Quita guiones bajos
+          .replace(/\b\w/g, l => l.toUpperCase()); // Capitaliza
+
+        // Mapear iconos según palabras clave en el título
+        let icon = '👉';
+        if (title.match(/Diferencia|Output/i)) icon = '❌';
+        else if (title.match(/Error|Bug/i)) icon = '🐛';
+        else if (title.match(/Pista|Sugerencia/i)) icon = '💡';
+        else if (title.match(/Consejo|Verific/i)) icon = '🕵️‍♂️';
+
+        markdown += `* **${icon} ${title}:** ${value}\n`;
+        hasContent = true;
+      });
+
+      return hasContent ? markdown : suggestion;
     } catch (e) {
       // No es JSON, devolver como texto plano/markdown original
       return suggestion;
@@ -144,7 +158,7 @@ function ExercisesPage() {
 
       setTheoryCache(prev => ({
         ...prev,
-        [exerciseId]: data.text || 'No se pudo generar la teoría.'
+        [exerciseId]: formatTheory(data.text) || 'No se pudo generar la teoría.'
       }));
 
     } catch (error) {
@@ -155,6 +169,32 @@ function ExercisesPage() {
       }));
     } finally {
       setLoadingTheory(false);
+    }
+  };
+
+  // Helper para formatear la teoría (JSON o Texto) a Markdown
+  const formatTheory = (content) => {
+    if (!content) return null;
+    try {
+      // Intentar parsear como JSON
+      const json = JSON.parse(content);
+
+      // Convertir objeto JSON a texto formateado Markdown
+      let markdown = "### 📘 Conceptos Clave\n\n";
+
+      Object.entries(json).forEach(([key, value]) => {
+        // Convertir snake_case a Título (operadores_aritmeticos -> Operadores Aritmeticos)
+        const title = key
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase());
+
+        markdown += `#### ${title}\n${value}\n\n`;
+      });
+
+      return markdown;
+    } catch (e) {
+      // Si no es JSON, devolver como texto plano original
+      return content;
     }
   };
 
@@ -272,8 +312,7 @@ function ExercisesPage() {
 
                   {showTheory && (
                     <div className="theory-box">
-                      <h4>Teoría Relacionada:</h4>
-                      <p>{theoryCache[selectedExercise.id]}</p>
+                      <ReactMarkdown>{theoryCache[selectedExercise.id]}</ReactMarkdown>
                     </div>
                   )}
                 </div>

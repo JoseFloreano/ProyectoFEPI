@@ -13,7 +13,7 @@ export const syncFromMongo = async (databaseContext) => {
     const mongoProgress = await progressAPI.getFullProgress();
 
     // Obtener proyectos personalizados
-    const projectsResponse = await fetch(`${API_URL}/api/projects`, {
+    const projectsResponse = await fetch(`${API_URL}/projects`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -98,7 +98,7 @@ export const needsFullSync = async (databaseContext) => {
 
     // ===== NUEVO: Verificar proyectos personalizados =====
     try {
-      const projectsResponse = await fetch('http://localhost:3001/api/projects', {
+      const projectsResponse = await fetch(`${API_URL}/projects`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -150,7 +150,7 @@ export const saveCustomProjectToMongo = async (projectData) => {
   try {
     const token = localStorage.getItem('token');
 
-    const response = await fetch('http://localhost:3001/api/projects/custom', {
+    const response = await fetch(`${API_URL}/projects/custom`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

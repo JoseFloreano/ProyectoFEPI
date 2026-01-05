@@ -39,7 +39,7 @@ const initialProjects = [
         expectedOutput: '6\n42\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    // Calcula 10 - 4 y 6 * 7\n    \n    return 0;\n}`,
         hints: ['Usa variables separadas para cada operación', 'Imprime cada resultado en una línea diferente'],
-        theoryTopics: [ 'operadores aritméticos', 'variables', 'printf']
+        theoryTopics: ['operadores aritméticos', 'variables', 'printf']
       },
       {
         id: 3,
@@ -48,7 +48,7 @@ const initialProjects = [
         description: 'Calcula la división de 15 entre 4 con 2 decimales.',
         expectedOutput: '3.75\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    float resultado;\n    // Calcula 15 / 4.0\n    \n    return 0;\n}`,
-        hints: ['Usa float para manejar decimales', 'Asegúrate de dividir entre 4.0 (float) no 4 (int)'], 
+        hints: ['Usa float para manejar decimales', 'Asegúrate de dividir entre 4.0 (float) no 4 (int)'],
         theoryTopics: ['tipos de datos', 'division_decimal', 'formato de impresión con printf']
       }
     ],
@@ -85,7 +85,7 @@ const initialProjects = [
         expectedOutput: '12\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    int a = 5, b = 12, c = 8;\n    // Encuentra el mayor\n    \n    return 0;\n}`,
         hints: ['Compara primero a y b', 'Luego compara el resultado con c'],
-        theoryTopics: ['estructuras condicionales', 'operadores de comparación', 'printf'] 
+        theoryTopics: ['estructuras condicionales', 'operadores de comparación', 'printf']
       },
       {
         id: 6,
@@ -121,7 +121,7 @@ const initialProjects = [
         expectedOutput: '120\n',
         starterCode: `#include <stdio.h>\n\nint main() {\n    int n = 5;\n    int factorial = 1;\n    // Usa un bucle para calcular el factorial\n    \n    return 0;\n}`,
         hints: ['Usa un bucle for desde 1 hasta n', 'Multiplica factorial por cada número en el bucle'],
-        theoryTopics: ['bucles', 'variables', 'operadores de asignación'] 
+        theoryTopics: ['bucles', 'variables', 'operadores de asignación']
       },
       {
         id: 8,
@@ -156,13 +156,13 @@ const initialProjects = [
 export const DatabaseProvider = ({ children }) => {
   // Estado para proyectos
   const [projects, setProjects] = useState([]);
-  
+
   // Estado para ejercicios completados (como Array, no Set)
   const [completedExercises, setCompletedExercises] = useState([]);
-  
+
   // Estado para proyectos desbloqueados
   const [unlockedProjects, setUnlockedProjects] = useState([]);
-  
+
   // Estado para el proyecto activo
   const [activeProject, setActiveProject] = useState(null);
 
@@ -197,7 +197,7 @@ export const DatabaseProvider = ({ children }) => {
   }, []);
 
   // ===== FUNCIONES DE EJERCICIOS =====
-  
+
   // Marcar ejercicio como completado
   const completeExercise = (exerciseId) => {
     setCompletedExercises(prev => {
@@ -240,7 +240,7 @@ export const DatabaseProvider = ({ children }) => {
     const project = projects.find(p => p.id === projectId);
     if (!project || !project.exercises) return 0;
 
-    const completed = project.exercises.filter(ex => 
+    const completed = project.exercises.filter(ex =>
       completedExercises.includes(ex.id)
     ).length;
 
@@ -296,12 +296,12 @@ export const DatabaseProvider = ({ children }) => {
     completedExercises,
     unlockedProjects,
     activeProject,
-    
+
     // Funciones de ejercicios
     completeExercise,
     isExerciseCompleted,
     getCompletedExercises,
-    
+
     // Funciones de proyectos
     unlockProject,
     getUnlockedProjects,
@@ -309,10 +309,11 @@ export const DatabaseProvider = ({ children }) => {
     isProjectCompleted,
     setActiveProjectById,
     addCustomProject,
-    
+
     // Funciones de sincronización
     clearAllProgress,
     resetProgress,
+    setProjects, // ← Expuesto para que syncService pueda actualizar el estado
   };
 
   return (
